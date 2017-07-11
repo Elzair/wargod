@@ -30,7 +30,6 @@ impl Core {
         let framebuffers = create_framebuffers(&device.device,
                                                &swapchain_settings,
                                                &render_pass)?;
-    println!("Got here!");
 
         Ok(Core {
             device: device,
@@ -41,14 +40,17 @@ impl Core {
     }
 }
 
-pub fn create_swapchain(device: &device::Device,
-                        preferred_extent: &dacite::core::Extent2D) -> Result<SwapchainSettings, ()> {
+pub fn create_swapchain(
+    device: &device::Device,
+    preferred_extent: &dacite::core::Extent2D
+) -> Result<SwapchainSettings, ()> {
     let capabilities = device.physical_device.get_surface_capabilities_khr(&device.surface).map_err(|e| {
         println!("Failed to get surface capabilities ({})", e);
     })?;
 
     let min_image_count = match capabilities.max_image_count {
-        Some(max_image_count) => cmp::max(capabilities.min_image_count, cmp::min(3, max_image_count)),
+        Some(max_image_count) => cmp::max(capabilities.min_image_count,
+                                          cmp::min(3, max_image_count)),
         None => cmp::max(capabilities.min_image_count, 3),
     };
 
@@ -59,7 +61,8 @@ pub fn create_swapchain(device: &device::Device,
     let mut format = None;
     let mut color_space = None;
     for surface_format in surface_formats {
-        if (surface_format.format == dacite::core::Format::B8G8R8A8_UNorm) && (surface_format.color_space == dacite::khr_surface::ColorSpaceKhr::SRGBNonLinear) {
+        if (surface_format.format == dacite::core::Format::B8G8R8A8_UNorm) &&
+            (surface_format.color_space == dacite::khr_surface::ColorSpaceKhr::SRGBNonLinear) {
             format = Some(surface_format.format);
             color_space = Some(surface_format.color_space);
             break;
@@ -162,8 +165,10 @@ pub fn create_swapchain(device: &device::Device,
     })
 }
 
-fn create_render_pass(device: &dacite::core::Device,
-                      swapchain: &SwapchainSettings) -> Result<dacite::core::RenderPass, ()> {
+fn create_render_pass(
+    device: &dacite::core::Device,
+    swapchain: &SwapchainSettings
+) -> Result<dacite::core::RenderPass, ()> {
     let create_info = dacite::core::RenderPassCreateInfo {
         flags: dacite::core::RenderPassCreateFlags::empty(),
         attachments: vec![dacite::core::AttachmentDescription {
@@ -198,9 +203,11 @@ fn create_render_pass(device: &dacite::core::Device,
     })
 }
 
-fn create_framebuffers(device: &dacite::core::Device,
-                       swapchain: &SwapchainSettings,
-                       render_pass: &dacite::core::RenderPass) -> Result<Vec<dacite::core::Framebuffer>, ()> {
+fn create_framebuffers(
+    device: &dacite::core::Device,
+    swapchain: &SwapchainSettings,
+    render_pass: &dacite::core::RenderPass
+) -> Result<Vec<dacite::core::Framebuffer>, ()> {
     let mut framebuffers = Vec::with_capacity(swapchain.image_views.len());
     for image_view in &swapchain.image_views {
         let create_info = dacite::core::FramebufferCreateInfo {

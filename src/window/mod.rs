@@ -21,8 +21,10 @@ impl Window {
 
         let window = window.map_err(|e| {
             match e {
-                winit::CreationError::OsError(e) => println!("Failed to create window ({})", e),
-                winit::CreationError::NotSupported => println!("Failed to create window (not supported)"),
+                winit::CreationError::OsError(e) =>
+                    println!("Failed to create window ({})", e),
+                winit::CreationError::NotSupported =>
+                    println!("Failed to create window (not supported)"),
             }
         })?;
 

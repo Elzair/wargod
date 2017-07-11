@@ -83,7 +83,9 @@ impl Renderer {
     }
 }
 
-pub fn create_vertex_shader(device: &dacite::core::Device) -> Result<dacite::core::ShaderModule, ()> {
+pub fn create_vertex_shader(
+    device: &dacite::core::Device
+) -> Result<dacite::core::ShaderModule, ()> {
     let vertex_shader_bytes = glsl_vs!{r#"
         #version 450
 
@@ -122,7 +124,9 @@ pub fn create_vertex_shader(device: &dacite::core::Device) -> Result<dacite::cor
     })
 }
 
-pub fn create_fragment_shader(device: &dacite::core::Device) -> Result<dacite::core::ShaderModule, ()> {
+pub fn create_fragment_shader(
+    device: &dacite::core::Device
+) -> Result<dacite::core::ShaderModule, ()> {
     let fragment_shader_bytes = glsl_fs!{r#"
         #version 450
 
@@ -146,7 +150,9 @@ pub fn create_fragment_shader(device: &dacite::core::Device) -> Result<dacite::c
     })
 }
 
-pub fn create_pipeline_layout(device: &dacite::core::Device) -> Result<dacite::core::PipelineLayout, ()> {
+pub fn create_pipeline_layout(
+    device: &dacite::core::Device
+) -> Result<dacite::core::PipelineLayout, ()> {
     let create_info = dacite::core::PipelineLayoutCreateInfo {
         flags: dacite::core::PipelineLayoutCreateFlags::empty(),
         set_layouts: vec![],
@@ -159,7 +165,11 @@ pub fn create_pipeline_layout(device: &dacite::core::Device) -> Result<dacite::c
     })
 }
 
-pub fn create_pipeline(device: &dacite::core::Device, render_pass: &dacite::core::RenderPass, extent: &dacite::core::Extent2D) -> Result<dacite::core::Pipeline, ()> {
+pub fn create_pipeline(
+    device: &dacite::core::Device,
+    render_pass: &dacite::core::RenderPass,
+    extent: &dacite::core::Extent2D
+) -> Result<dacite::core::Pipeline, ()> {
     let vertex_shader = create_vertex_shader(device)?;
     let fragment_shader = create_fragment_shader(device)?;
     let layout = create_pipeline_layout(device)?;
@@ -207,7 +217,8 @@ pub fn create_pipeline(device: &dacite::core::Device, render_pass: &dacite::core
                 min_depth: 0.0,
                 max_depth: 1.0,
             }],
-            scissors: vec![dacite::core::Rect2D::new(dacite::core::Offset2D::zero(), *extent)],
+            scissors: vec![dacite::core::Rect2D::new(dacite::core::Offset2D::zero(),
+                                                     *extent)],
             chain: None,
         }),
         rasterization_state: dacite::core::PipelineRasterizationStateCreateInfo {
@@ -261,15 +272,19 @@ pub fn create_pipeline(device: &dacite::core::Device, render_pass: &dacite::core
         chain: None,
     }];
 
-    let pipelines = device.create_graphics_pipelines(None, &create_infos, None).map_err(|(e, _)| {
+    let pipelines = device.create_graphics_pipelines(None,
+                                                     &create_infos,
+                                                     None).map_err(|(e, _)| {
         println!("Failed to create pipeline ({})", e);
     })?;
 
     Ok(pipelines[0].clone())
 }
 
-pub fn create_command_pool(device: &dacite::core::Device,
-                       queue_family_index: u32) -> Result<dacite::core::CommandPool, ()> {
+pub fn create_command_pool(
+    device: &dacite::core::Device,
+    queue_family_index: u32
+) -> Result<dacite::core::CommandPool, ()> {
     let create_info = dacite::core::CommandPoolCreateInfo {
         flags: dacite::core::CommandPoolCreateFlags::empty(),
         queue_family_index: queue_family_index,
@@ -281,11 +296,13 @@ pub fn create_command_pool(device: &dacite::core::Device,
     })
 }
 
-pub fn record_command_buffer(command_pool: &dacite::core::CommandPool,
-                         pipeline: &dacite::core::Pipeline,
-                         framebuffers: &[dacite::core::Framebuffer],
-                         render_pass: &dacite::core::RenderPass,
-                         extent: &dacite::core::Extent2D) -> Result<Vec<dacite::core::CommandBuffer>, ()> {
+pub fn record_command_buffer(
+    command_pool: &dacite::core::CommandPool,
+    pipeline: &dacite::core::Pipeline,
+    framebuffers: &[dacite::core::Framebuffer],
+    render_pass: &dacite::core::RenderPass,
+    extent: &dacite::core::Extent2D
+) -> Result<Vec<dacite::core::CommandBuffer>, ()> {
     let allocate_info = dacite::core::CommandBufferAllocateInfo {
         command_pool: command_pool.clone(),
         level: dacite::core::CommandBufferLevel::Primary,
@@ -329,7 +346,9 @@ pub fn record_command_buffer(command_pool: &dacite::core::CommandPool,
     Ok(command_buffers)
 }
 
-pub fn create_semaphores(device: &dacite::core::Device) -> Result<(dacite::core::Semaphore, dacite::core::Semaphore), ()> {
+pub fn create_semaphores(
+    device: &dacite::core::Device
+) -> Result<(dacite::core::Semaphore, dacite::core::Semaphore), ()> {
     let create_info = dacite::core::SemaphoreCreateInfo {
         flags: dacite::core::SemaphoreCreateFlags::empty(),
         chain: None,

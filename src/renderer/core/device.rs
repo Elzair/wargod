@@ -58,7 +58,9 @@ impl Device {
     }
 }
 
-fn compute_instance_extensions(window: &winit::Window) -> Result<dacite::core::InstanceExtensions, ()> {
+fn compute_instance_extensions(
+    window: &winit::Window
+) -> Result<dacite::core::InstanceExtensions, ()> {
     let available_extensions = dacite::core::Instance::get_instance_extension_properties(None).map_err(|e| {
         println!("Failed to get instance extension properties ({})", e);
     })?;
@@ -82,7 +84,9 @@ fn compute_instance_extensions(window: &winit::Window) -> Result<dacite::core::I
     }
 }
 
-fn create_instance(instance_extensions: dacite::core::InstanceExtensions) -> Result<dacite::core::Instance, ()> {
+fn create_instance(
+    instance_extensions: dacite::core::InstanceExtensions
+) -> Result<dacite::core::Instance, ()> {
     let application_info = dacite::core::ApplicationInfo {
         application_name: Some("dacite triangle example".to_owned()),
         application_version: 0,
@@ -107,8 +111,10 @@ fn create_instance(instance_extensions: dacite::core::InstanceExtensions) -> Res
     })
 }
 
-fn find_queue_family_indices(physical_device: &dacite::core::PhysicalDevice,
-                             surface: &dacite::khr_surface::SurfaceKhr) -> Result<QueueFamilyIndices, ()> {
+fn find_queue_family_indices(
+    physical_device: &dacite::core::PhysicalDevice,
+    surface: &dacite::khr_surface::SurfaceKhr
+) -> Result<QueueFamilyIndices, ()> {
     let mut graphics = None;
     let mut present = None;
 
@@ -140,7 +146,9 @@ fn find_queue_family_indices(physical_device: &dacite::core::PhysicalDevice,
     }
 }
 
-fn check_device_extensions(physical_device: &dacite::core::PhysicalDevice) -> Result<dacite::core::DeviceExtensions, ()> {
+fn check_device_extensions(
+    physical_device: &dacite::core::PhysicalDevice
+) -> Result<dacite::core::DeviceExtensions, ()> {
     let available_extensions = physical_device.get_device_extension_properties(None).map_err(|e| {
         println!("Failed to get device extension properties ({})", e);
     })?;
@@ -161,7 +169,10 @@ fn check_device_extensions(physical_device: &dacite::core::PhysicalDevice) -> Re
     }
 }
 
-fn check_device_suitability(physical_device: dacite::core::PhysicalDevice, surface: &dacite::khr_surface::SurfaceKhr) -> Result<DeviceSettings, ()> {
+fn check_device_suitability(
+    physical_device: dacite::core::PhysicalDevice,
+    surface: &dacite::khr_surface::SurfaceKhr
+) -> Result<DeviceSettings, ()> {
     let queue_family_indices = find_queue_family_indices(&physical_device, surface)?;
     let device_extensions = check_device_extensions(&physical_device)?;
 
@@ -172,7 +183,10 @@ fn check_device_suitability(physical_device: dacite::core::PhysicalDevice, surfa
     })
 }
 
-fn find_suitable_device(instance: &dacite::core::Instance, surface: &dacite::khr_surface::SurfaceKhr) -> Result<DeviceSettings, ()> {
+fn find_suitable_device(
+    instance: &dacite::core::Instance,
+    surface: &dacite::khr_surface::SurfaceKhr
+) -> Result<DeviceSettings, ()> {
     let physical_devices = instance.enumerate_physical_devices().map_err(|e| {
         println!("Failed to enumerate physical devices ({})", e);
     })?;
@@ -187,7 +201,11 @@ fn find_suitable_device(instance: &dacite::core::Instance, surface: &dacite::khr
     Err(())
 }
 
-fn create_device(physical_device: &dacite::core::PhysicalDevice, device_extensions: dacite::core::DeviceExtensions, queue_family_indices: &QueueFamilyIndices) -> Result<dacite::core::Device, ()> {
+fn create_device(
+    physical_device: &dacite::core::PhysicalDevice,
+    device_extensions: dacite::core::DeviceExtensions,
+    queue_family_indices: &QueueFamilyIndices
+) -> Result<dacite::core::Device, ()> {
 
         let device_queue_create_infos = vec![
             dacite::core::DeviceQueueCreateInfo {
