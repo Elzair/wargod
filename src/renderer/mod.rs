@@ -5,15 +5,15 @@ extern crate winit;
 pub mod init;
 
 use dacite_winit::WindowExt;
-use std::cmp;
 use std::time::Duration;
+use window;
 
-fn render(graphics_queue: &dacite::core::Queue,
-          present_queue: &dacite::core::Queue,
-          command_buffers: &[dacite::core::CommandBuffer],
-          swapchain: &dacite::khr_swapchain::SwapchainKhr,
-          image_acquired: &dacite::core::Semaphore,
-          image_rendered: &dacite::core::Semaphore) -> Result<(), ()> {
+pub fn render(graphics_queue: &dacite::core::Queue,
+              present_queue: &dacite::core::Queue,
+              command_buffers: &[dacite::core::CommandBuffer],
+              swapchain: &dacite::khr_swapchain::SwapchainKhr,
+              image_acquired: &dacite::core::Semaphore,
+              image_rendered: &dacite::core::Semaphore) -> Result<(), ()> {
     let next_image_res = swapchain.acquire_next_image_khr(dacite::core::Timeout::Some(Duration::from_millis(17)), Some(image_acquired), None).map_err(|e| {
         println!("Failed to acquire next image ({})", e);
     })?;
@@ -52,18 +52,27 @@ fn render(graphics_queue: &dacite::core::Queue,
     Ok(())
 }
 
-pub fn real_main() -> Result<(), ()> {
-    let preferred_extent = dacite::core::Extent2D::new(800, 600);
+pub struct Renderer {
+    pub instance: dacite::core::Instance,
+    pub surface: dacite::khr_surface::SurfaceKhr,
+    pub device: dacite::core::Device,
+    pub graphics_queue: dacite::core::Queue,
+    pub present_queue: dacite::core::Queue,
+    pub swapchain: dacite::khr_swapchain::SwapchainKhr,
+    pub render_pass: dacite::core::RenderPass,
+    pub framebuffers: Vec<dacite::core::Framebuffer>,
+    pub pipeline: dacite::core::Pipeline,
+    pub command_pool: dacite::core::CommandPool,
+    pub command_buffers: Vec<dacite::core::CommandBuffer>,
+    pub image_acquired: dacite::core::Semaphore,
+    pub image_rendered: dacite::core::Semaphore,
+}
 
-    let init::Window {
-        mut events_loop,
-        window,
-    } = init::create_window(&preferred_extent)?;
-
-    let instance_extensions = init::compute_instance_extensions(&window)?;
+pub fn init(window: &window::Window) -> Result<Renderer, ()> {
+    let instance_extensions = init::compute_instance_extensions(&window.window)?;
     let instance = init::create_instance(instance_extensions)?;
 
-    let surface = window.create_surface(&instance, dacite_winit::SurfaceCreateFlags::empty(), None).map_err(|e| match e {
+    let surface = window.window.create_surface(&instance, dacite_winit::SurfaceCreateFlags::empty(), None).map_err(|e| match e {
         dacite_winit::Error::Unsupported => println!("The windowing system is not supported"),
         dacite_winit::Error::VulkanError(e) => println!("Failed to create surface ({})", e),
     })?;
@@ -83,7 +92,7 @@ pub fn real_main() -> Result<(), ()> {
         extent,
         image_views: swapchain_image_views,
         format,
-    } = init::create_swapchain(&physical_device, &device, &surface, &preferred_extent, &queue_family_indices)?;
+    } = init::create_swapchain(&physical_device, &device, &surface, &window.extent, &queue_family_indices)?;
 
     let render_pass = init::create_render_pass(&device, format)?;
     let framebuffers = init::create_framebuffers(&device, &swapchain_image_views, &render_pass, &extent)?;
@@ -92,26 +101,21 @@ pub fn real_main() -> Result<(), ()> {
     let command_buffers = init::record_command_buffer(&command_pool, &pipeline, &framebuffers, &render_pass, &extent)?;
     let (image_acquired, image_rendered) = init::create_semaphores(&device)?;
 
-    window.show();
+    window.window.show();
 
-    let mut running = true;
-    while running {
-        events_loop.poll_events(|event| {
-            if let winit::Event::WindowEvent { event: winit::WindowEvent::Closed, .. } = event {
-                running = false;
-            }
-        });
-
-        render(&graphics_queue, &present_queue, &command_buffers, &swapchain, &image_acquired, &image_rendered)?;
-
-        device.wait_idle().map_err(|e| {
-            println!("Failed to wait for device becoming idle ({})", e);
-        })?;
-    }
-
-    device.wait_idle().map_err(|e| {
-        println!("Failed to wait for device becoming idle ({})", e);
-    })?;
-
-    Ok(())
+    Ok(Renderer {
+        instance: instance,
+        surface: surface,
+        device: device,
+        graphics_queue: graphics_queue,
+        present_queue: present_queue,
+        swapchain: swapchain,
+        render_pass: render_pass,
+        framebuffers: framebuffers,
+        pipeline: pipeline,
+        command_pool: command_pool,
+        command_buffers: command_buffers,
+        image_acquired: image_acquired,
+        image_rendered: image_rendered,
+    })
 }

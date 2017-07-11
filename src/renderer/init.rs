@@ -4,10 +4,6 @@ use dacite_winit;
 use dacite_winit::WindowExt;
 use std::cmp;
 
-pub struct Window {
-    pub events_loop: winit::EventsLoop,
-    pub window: winit::Window,
-}
 
 pub struct QueueFamilyIndices {
     pub graphics: u32,
@@ -25,29 +21,6 @@ pub struct SwapchainSettings {
     pub extent: dacite::core::Extent2D,
     pub image_views: Vec<dacite::core::ImageView>,
     pub format: dacite::core::Format,
-}
-
-pub fn create_window(extent: &dacite::core::Extent2D) -> Result<Window, ()> {
-    let events_loop = winit::EventsLoop::new();
-    let window = winit::WindowBuilder::new()
-        .with_title("dacite triangle example")
-        .with_dimensions(extent.width, extent.height)
-        .with_min_dimensions(extent.width, extent.height)
-        .with_max_dimensions(extent.width, extent.height)
-        .with_visibility(false)
-        .build(&events_loop);
-
-    let window = window.map_err(|e| {
-        match e {
-            winit::CreationError::OsError(e) => println!("Failed to create window ({})", e),
-            winit::CreationError::NotSupported => println!("Failed to create window (not supported)"),
-        }
-    })?;
-
-    Ok(Window {
-        events_loop: events_loop,
-        window: window,
-    })
 }
 
 pub fn compute_instance_extensions(window: &winit::Window) -> Result<dacite::core::InstanceExtensions, ()> {
