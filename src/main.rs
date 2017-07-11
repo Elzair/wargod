@@ -11,6 +11,8 @@ fn main() {
     let preferred_extent = dacite::core::Extent2D::new(800, 600);
     let mut window = window::Window::new(preferred_extent).unwrap();
     let renderer = renderer::Renderer::new(&window).unwrap();
+
+    window.window.show();
     
     let mut running = true;
     while running {
@@ -22,12 +24,12 @@ fn main() {
 
         renderer.render().unwrap();
 
-        renderer.device.wait_idle().map_err(|e| {
+        renderer.core.device.device.wait_idle().map_err(|e| {
             println!("Failed to wait for device becoming idle ({})", e);
         }).unwrap();
     }
 
-    renderer.device.wait_idle().map_err(|e| {
+    renderer.core.device.device.wait_idle().map_err(|e| {
         println!("Failed to wait for device becoming idle ({})", e);
     }).unwrap();
 
