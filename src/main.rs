@@ -10,7 +10,7 @@ pub mod window;
 fn main() {
     let preferred_extent = dacite::core::Extent2D::new(800, 600);
     let mut window = window::Window::new(preferred_extent).unwrap();
-    let rend = renderer::init(&window).unwrap();
+    let renderer = renderer::Renderer::new(&window).unwrap();
     
     let mut running = true;
     while running {
@@ -20,19 +20,14 @@ fn main() {
             }
         });
 
-        renderer::render(&rend.graphics_queue,
-                         &rend.present_queue,
-                         &rend.command_buffers,
-                         &rend.swapchain,
-                         &rend.image_acquired,
-                         &rend.image_rendered).unwrap();
+        renderer.render().unwrap();
 
-        rend.device.wait_idle().map_err(|e| {
+        renderer.device.wait_idle().map_err(|e| {
             println!("Failed to wait for device becoming idle ({})", e);
         }).unwrap();
     }
 
-    rend.device.wait_idle().map_err(|e| {
+    renderer.device.wait_idle().map_err(|e| {
         println!("Failed to wait for device becoming idle ({})", e);
     }).unwrap();
 
