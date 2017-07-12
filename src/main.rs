@@ -4,11 +4,13 @@ extern crate winit;
 #[macro_use] extern crate glsl_to_spirv_macros;
 #[macro_use] extern crate glsl_to_spirv_macros_impl;
 
+use dacite::core::Extent2D;
+
 pub mod renderer;
 pub mod window;
 
 fn main() {
-    let preferred_extent = dacite::core::Extent2D::new(800, 600);
+    let preferred_extent = Extent2D::new(800, 600);
     let mut window = window::Window::new(preferred_extent).unwrap();
     let renderer = Box::new(renderer::Renderer::new(&window).unwrap());
 

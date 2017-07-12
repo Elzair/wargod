@@ -3,27 +3,28 @@ extern crate dacite;
 extern crate dacite_winit;
 use std::cmp;
 use window;
+use dacite::core as dc;
 
 pub mod device;
 
 struct SwapchainSettings {
-    format: dacite::core::Format,
-    image_views: Vec<dacite::core::ImageView>,
-    extent: dacite::core::Extent2D,
+    format: dc::Format,
+    image_views: Vec<dc::ImageView>,
+    extent: dc::Extent2D,
     swapchain: dacite::khr_swapchain::SwapchainKhr,
 }
 
 pub struct Core {
-    pub framebuffers: Vec<dacite::core::Framebuffer>,
-    pub render_pass: dacite::core::RenderPass,
-    pub image_views: Vec<dacite::core::ImageView>,
+    pub framebuffers: Vec<dc::Framebuffer>,
+    pub render_pass: dc::RenderPass,
+    pub image_views: Vec<dc::ImageView>,
     pub swapchain: dacite::khr_swapchain::SwapchainKhr,
-    pub device: device::Device,
+    pub device: device::Internal,
 }
 
 impl Core {
     pub fn new(window: &window::Window) -> Result<Self, ()> {
-        let device = device::Device::new(window)?;
+        let device = device::Internal::new(window)?;
         
         let swapchain_settings = create_swapchain(&device, &window.extent)?;
 
@@ -43,8 +44,8 @@ impl Core {
 }
 
 fn create_swapchain(
-    device: &device::Device,
-    preferred_extent: &dacite::core::Extent2D
+    device: &device::Internal,
+    preferred_extent: &dc::Extent2D
 ) -> Result<SwapchainSettings, ()> {
     let capabilities = device.physical_device.get_surface_capabilities_khr(&device.surface).map_err(|e| {
         println!("Failed to get surface capabilities ({})", e);
@@ -63,7 +64,7 @@ fn create_swapchain(
     let mut format = None;
     let mut color_space = None;
     for surface_format in surface_formats {
-        if (surface_format.format == dacite::core::Format::B8G8R8A8_UNorm) &&
+        if (surface_format.format == dc::Format::B8G8R8A8_UNorm) &&
             (surface_format.color_space == dacite::khr_surface::ColorSpaceKhr::SRGBNonLinear) {
             format = Some(surface_format.format);
             color_space = Some(surface_format.color_space);
@@ -76,10 +77,10 @@ fn create_swapchain(
     })?;
 
     let (image_sharing_mode, queue_family_indices) = if device.queue_family_indices.graphics == device.queue_family_indices.present {
-        (dacite::core::SharingMode::Exclusive, vec![])
+        (dc::SharingMode::Exclusive, vec![])
     }
     else {
-        (dacite::core::SharingMode::Concurrent, vec![device.queue_family_indices.graphics, device.queue_family_indices.present])
+        (dc::SharingMode::Concurrent, vec![device.queue_family_indices.graphics, device.queue_family_indices.present])
     };
 
     let extent = match capabilities.current_extent {
@@ -115,7 +116,7 @@ fn create_swapchain(
         image_color_space: color_space.unwrap(),
         image_extent: extent,
         image_array_layers: 1,
-        image_usage: dacite::core::IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        image_usage: dc::IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
         image_sharing_mode: image_sharing_mode,
         queue_family_indices: queue_family_indices,
         pre_transform: capabilities.current_transform,
@@ -136,18 +137,18 @@ fn create_swapchain(
 
     let mut image_views = Vec::with_capacity(images.len());
     for image in &images {
-        let create_info = dacite::core::ImageViewCreateInfo {
-            flags: dacite::core::ImageViewCreateFlags::empty(),
+        let create_info = dc::ImageViewCreateInfo {
+            flags: dc::ImageViewCreateFlags::empty(),
             image: image.clone(),
-            view_type: dacite::core::ImageViewType::Type2D,
+            view_type: dc::ImageViewType::Type2D,
             format: format,
-            components: dacite::core::ComponentMapping::identity(),
-            subresource_range: dacite::core::ImageSubresourceRange {
-                aspect_mask: dacite::core::IMAGE_ASPECT_COLOR_BIT,
+            components: dc::ComponentMapping::identity(),
+            subresource_range: dc::ImageSubresourceRange {
+                aspect_mask: dc::IMAGE_ASPECT_COLOR_BIT,
                 base_mip_level: 0,
-                level_count: dacite::core::OptionalMipLevels::MipLevels(1),
+                level_count: dc::OptionalMipLevels::MipLevels(1),
                 base_array_layer: 0,
-                layer_count: dacite::core::OptionalArrayLayers::ArrayLayers(1),
+                layer_count: dc::OptionalArrayLayers::ArrayLayers(1),
             },
             chain: None,
         };
@@ -168,29 +169,29 @@ fn create_swapchain(
 }
 
 fn create_render_pass(
-    device: &dacite::core::Device,
+    device: &dc::Device,
     swapchain: &SwapchainSettings
-) -> Result<dacite::core::RenderPass, ()> {
-    let create_info = dacite::core::RenderPassCreateInfo {
-        flags: dacite::core::RenderPassCreateFlags::empty(),
-        attachments: vec![dacite::core::AttachmentDescription {
-            flags: dacite::core::AttachmentDescriptionFlags::empty(),
+) -> Result<dc::RenderPass, ()> {
+    let create_info = dc::RenderPassCreateInfo {
+        flags: dc::RenderPassCreateFlags::empty(),
+        attachments: vec![dc::AttachmentDescription {
+            flags: dc::AttachmentDescriptionFlags::empty(),
             format: swapchain.format,
-            samples: dacite::core::SAMPLE_COUNT_1_BIT,
-            load_op: dacite::core::AttachmentLoadOp::Clear,
-            store_op: dacite::core::AttachmentStoreOp::Store,
-            stencil_load_op: dacite::core::AttachmentLoadOp::DontCare,
-            stencil_store_op: dacite::core::AttachmentStoreOp::DontCare,
-            initial_layout: dacite::core::ImageLayout::Undefined,
-            final_layout: dacite::core::ImageLayout::PresentSrcKhr,
+            samples: dc::SAMPLE_COUNT_1_BIT,
+            load_op: dc::AttachmentLoadOp::Clear,
+            store_op: dc::AttachmentStoreOp::Store,
+            stencil_load_op: dc::AttachmentLoadOp::DontCare,
+            stencil_store_op: dc::AttachmentStoreOp::DontCare,
+            initial_layout: dc::ImageLayout::Undefined,
+            final_layout: dc::ImageLayout::PresentSrcKhr,
         }],
-        subpasses: vec![dacite::core::SubpassDescription {
-            flags: dacite::core::SubpassDescriptionFlags::empty(),
-            pipeline_bind_point: dacite::core::PipelineBindPoint::Graphics,
+        subpasses: vec![dc::SubpassDescription {
+            flags: dc::SubpassDescriptionFlags::empty(),
+            pipeline_bind_point: dc::PipelineBindPoint::Graphics,
             input_attachments: vec![],
-            color_attachments: vec![dacite::core::AttachmentReference {
-                attachment: dacite::core::AttachmentIndex::Index(0),
-                layout: dacite::core::ImageLayout::ColorAttachmentOptimal,
+            color_attachments: vec![dc::AttachmentReference {
+                attachment: dc::AttachmentIndex::Index(0),
+                layout: dc::ImageLayout::ColorAttachmentOptimal,
             }],
             resolve_attachments: vec![],
             depth_stencil_attachment: None,
@@ -206,14 +207,14 @@ fn create_render_pass(
 }
 
 fn create_framebuffers(
-    device: &dacite::core::Device,
+    device: &dc::Device,
     swapchain: &SwapchainSettings,
-    render_pass: &dacite::core::RenderPass
-) -> Result<Vec<dacite::core::Framebuffer>, ()> {
+    render_pass: &dc::RenderPass
+) -> Result<Vec<dc::Framebuffer>, ()> {
     let mut framebuffers = Vec::with_capacity(swapchain.image_views.len());
     for image_view in &swapchain.image_views {
-        let create_info = dacite::core::FramebufferCreateInfo {
-            flags: dacite::core::FramebufferCreateFlags::empty(),
+        let create_info = dc::FramebufferCreateInfo {
+            flags: dc::FramebufferCreateFlags::empty(),
             render_pass: render_pass.clone(),
             attachments: vec![image_view.clone()],
             width: swapchain.extent.width,

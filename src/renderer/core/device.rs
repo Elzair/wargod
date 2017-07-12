@@ -3,6 +3,7 @@ extern crate dacite;
 extern crate dacite_winit;
 use dacite_winit::WindowExt;
 use window;
+use dacite::core as dc;
 
 pub struct QueueFamilyIndices {
     pub graphics: u32,
@@ -10,22 +11,22 @@ pub struct QueueFamilyIndices {
 }
 
 pub struct DeviceSettings {
-    pub physical_device: dacite::core::PhysicalDevice,
+    pub physical_device: dc::PhysicalDevice,
     pub queue_family_indices: QueueFamilyIndices,
-    pub device_extensions: dacite::core::DeviceExtensions,
+    pub device_extensions: dc::DeviceExtensions,
 }
 
-pub struct Device {
-    pub graphics_queue: dacite::core::Queue,
-    pub present_queue: dacite::core::Queue,
+pub struct Internal {
+    pub graphics_queue: dc::Queue,
+    pub present_queue: dc::Queue,
     pub queue_family_indices: QueueFamilyIndices,
-    pub device: dacite::core::Device,
+    pub device: dc::Device,
     pub surface: dacite::khr_surface::SurfaceKhr,
-    pub physical_device: dacite::core::PhysicalDevice,
-    pub instance: dacite::core::Instance,
+    pub physical_device: dc::PhysicalDevice,
+    pub instance: dc::Instance,
 }
 
-impl Device {
+impl Internal {
     pub fn new(window: &window::Window) -> Result<Self, ()> {
         let instance_extensions = compute_instance_extensions(&window.window)?;
         let instance = create_instance(instance_extensions)?;
@@ -46,7 +47,7 @@ impl Device {
         let graphics_queue = device.get_queue(queue_family_indices.graphics, 0);
         let present_queue = device.get_queue(queue_family_indices.present, 0);
 
-        Ok(Device {
+        Ok(Internal {
             instance: instance,
             surface: surface,
             physical_device: physical_device,
@@ -60,8 +61,8 @@ impl Device {
 
 fn compute_instance_extensions(
     window: &winit::Window
-) -> Result<dacite::core::InstanceExtensions, ()> {
-    let available_extensions = dacite::core::Instance::get_instance_extension_properties(None).map_err(|e| {
+) -> Result<dc::InstanceExtensions, ()> {
+    let available_extensions = dc::Instance::get_instance_extension_properties(None).map_err(|e| {
         println!("Failed to get instance extension properties ({})", e);
     })?;
 
@@ -85,9 +86,9 @@ fn compute_instance_extensions(
 }
 
 fn create_instance(
-    instance_extensions: dacite::core::InstanceExtensions
-) -> Result<dacite::core::Instance, ()> {
-    let application_info = dacite::core::ApplicationInfo {
+    instance_extensions: dc::InstanceExtensions
+) -> Result<dc::Instance, ()> {
+    let application_info = dc::ApplicationInfo {
         application_name: Some("dacite triangle example".to_owned()),
         application_version: 0,
         engine_name: None,
@@ -98,21 +99,21 @@ fn create_instance(
 
     let validation_layer = String::from("VK_LAYER_LUNARG_standard_validation");
 
-    let create_info = dacite::core::InstanceCreateInfo {
-        flags: dacite::core::InstanceCreateFlags::empty(),
+    let create_info = dc::InstanceCreateInfo {
+        flags: dc::InstanceCreateFlags::empty(),
         application_info: Some(application_info),
         enabled_layers: vec![validation_layer],
         enabled_extensions: instance_extensions,
         chain: None,
     };
 
-    dacite::core::Instance::create(&create_info, None).map_err(|e| {
+    dc::Instance::create(&create_info, None).map_err(|e| {
         println!("Failed to create instance ({})", e);
     })
 }
 
 fn find_queue_family_indices(
-    physical_device: &dacite::core::PhysicalDevice,
+    physical_device: &dc::PhysicalDevice,
     surface: &dacite::khr_surface::SurfaceKhr
 ) -> Result<QueueFamilyIndices, ()> {
     let mut graphics = None;
@@ -124,7 +125,7 @@ fn find_queue_family_indices(
             continue;
         }
 
-        if graphics.is_none() && queue_family_properties.queue_flags.contains(dacite::core::QUEUE_GRAPHICS_BIT) {
+        if graphics.is_none() && queue_family_properties.queue_flags.contains(dc::QUEUE_GRAPHICS_BIT) {
             graphics = Some(index);
         }
 
@@ -147,13 +148,13 @@ fn find_queue_family_indices(
 }
 
 fn check_device_extensions(
-    physical_device: &dacite::core::PhysicalDevice
-) -> Result<dacite::core::DeviceExtensions, ()> {
+    physical_device: &dc::PhysicalDevice
+) -> Result<dc::DeviceExtensions, ()> {
     let available_extensions = physical_device.get_device_extension_properties(None).map_err(|e| {
         println!("Failed to get device extension properties ({})", e);
     })?;
 
-    let mut required_extensions = dacite::core::DeviceExtensionsProperties::new();
+    let mut required_extensions = dc::DeviceExtensionsProperties::new();
     required_extensions.add_khr_swapchain(67);
 
     let missing_extensions = required_extensions.difference(&available_extensions);
@@ -170,7 +171,7 @@ fn check_device_extensions(
 }
 
 fn check_device_suitability(
-    physical_device: dacite::core::PhysicalDevice,
+    physical_device: dc::PhysicalDevice,
     surface: &dacite::khr_surface::SurfaceKhr
 ) -> Result<DeviceSettings, ()> {
     let queue_family_indices = find_queue_family_indices(&physical_device, surface)?;
@@ -184,7 +185,7 @@ fn check_device_suitability(
 }
 
 fn find_suitable_device(
-    instance: &dacite::core::Instance,
+    instance: &dc::Instance,
     surface: &dacite::khr_surface::SurfaceKhr
 ) -> Result<DeviceSettings, ()> {
     let physical_devices = instance.enumerate_physical_devices().map_err(|e| {
@@ -202,22 +203,22 @@ fn find_suitable_device(
 }
 
 fn create_device(
-    physical_device: &dacite::core::PhysicalDevice,
-    device_extensions: dacite::core::DeviceExtensions,
+    physical_device: &dc::PhysicalDevice,
+    device_extensions: dc::DeviceExtensions,
     queue_family_indices: &QueueFamilyIndices
-) -> Result<dacite::core::Device, ()> {
+) -> Result<dc::Device, ()> {
 
         let device_queue_create_infos = vec![
-            dacite::core::DeviceQueueCreateInfo {
-                flags: dacite::core::DeviceQueueCreateFlags::empty(),
+            dc::DeviceQueueCreateInfo {
+                flags: dc::DeviceQueueCreateFlags::empty(),
                 queue_family_index: queue_family_indices.graphics,
                 queue_priorities: vec![1.0],
                 chain: None,
             },
         ];
 
-        let device_create_info = dacite::core::DeviceCreateInfo {
-            flags: dacite::core::DeviceCreateFlags::empty(),
+        let device_create_info = dc::DeviceCreateInfo {
+            flags: dc::DeviceCreateFlags::empty(),
             queue_create_infos: device_queue_create_infos,
             enabled_layers: vec![],
             enabled_extensions: device_extensions,

@@ -2,17 +2,18 @@ extern crate dacite;
 extern crate dacite_winit;
 extern crate winit;
 
-pub mod core;
-
 use std::time::Duration;
 use window;
+use dacite::core as dc;
+
+pub mod core;
 
 pub struct Renderer {
-    pub image_rendered: dacite::core::Semaphore,
-    pub image_acquired: dacite::core::Semaphore,
-    pub command_buffers: Vec<dacite::core::CommandBuffer>,
-    pub command_pool: dacite::core::CommandPool,
-    pub pipeline: dacite::core::Pipeline,
+    pub image_rendered: dc::Semaphore,
+    pub image_acquired: dc::Semaphore,
+    pub command_buffers: Vec<dc::CommandBuffer>,
+    pub command_pool: dc::CommandPool,
+    pub pipeline: dc::Pipeline,
     pub core: core::Core,
 }
 
@@ -44,7 +45,7 @@ impl Renderer {
     }
 
     pub fn render(&self) -> Result<(), ()> {
-        let next_image_res = self.core.swapchain.acquire_next_image_khr(dacite::core::Timeout::Some(Duration::from_millis(17)), Some(&self.image_acquired), None).map_err(|e| {
+        let next_image_res = self.core.swapchain.acquire_next_image_khr(dc::Timeout::Some(Duration::from_millis(17)), Some(&self.image_acquired), None).map_err(|e| {
             println!("Failed to acquire next image ({})", e);
         })?;
 
@@ -55,9 +56,9 @@ impl Renderer {
             dacite::khr_swapchain::AcquireNextImageResultKhr::NotReady => return Ok(()),
         };
 
-        let submit_infos = vec![dacite::core::SubmitInfo {
+        let submit_infos = vec![dc::SubmitInfo {
             wait_semaphores: vec![self.image_acquired.clone()],
-            wait_dst_stage_mask: vec![dacite::core::PIPELINE_STAGE_TOP_OF_PIPE_BIT],
+            wait_dst_stage_mask: vec![dc::PIPELINE_STAGE_TOP_OF_PIPE_BIT],
             command_buffers: vec![self.command_buffers[next_image].clone()],
             signal_semaphores: vec![self.image_rendered.clone()],
             chain: None,
@@ -84,8 +85,8 @@ impl Renderer {
 }
 
 pub fn create_vertex_shader(
-    device: &dacite::core::Device
-) -> Result<dacite::core::ShaderModule, ()> {
+    device: &dc::Device
+) -> Result<dc::ShaderModule, ()> {
     let vertex_shader_bytes = glsl_vs!{r#"
         #version 450
 
@@ -113,8 +114,8 @@ pub fn create_vertex_shader(
         }
     "#};
 
-    let create_info = dacite::core::ShaderModuleCreateInfo {
-        flags: dacite::core::ShaderModuleCreateFlags::empty(),
+    let create_info = dc::ShaderModuleCreateInfo {
+        flags: dc::ShaderModuleCreateFlags::empty(),
         code: vertex_shader_bytes.to_vec(),
         chain: None,
     };
@@ -125,8 +126,8 @@ pub fn create_vertex_shader(
 }
 
 pub fn create_fragment_shader(
-    device: &dacite::core::Device
-) -> Result<dacite::core::ShaderModule, ()> {
+    device: &dc::Device
+) -> Result<dc::ShaderModule, ()> {
     let fragment_shader_bytes = glsl_fs!{r#"
         #version 450
 
@@ -139,8 +140,8 @@ pub fn create_fragment_shader(
         }
     "#};
 
-    let create_info = dacite::core::ShaderModuleCreateInfo {
-        flags: dacite::core::ShaderModuleCreateFlags::empty(),
+    let create_info = dc::ShaderModuleCreateInfo {
+        flags: dc::ShaderModuleCreateFlags::empty(),
         code: fragment_shader_bytes.to_vec(),
         chain: None,
     };
@@ -151,10 +152,10 @@ pub fn create_fragment_shader(
 }
 
 pub fn create_pipeline_layout(
-    device: &dacite::core::Device
-) -> Result<dacite::core::PipelineLayout, ()> {
-    let create_info = dacite::core::PipelineLayoutCreateInfo {
-        flags: dacite::core::PipelineLayoutCreateFlags::empty(),
+    device: &dc::Device
+) -> Result<dc::PipelineLayout, ()> {
+    let create_info = dc::PipelineLayoutCreateInfo {
+        flags: dc::PipelineLayoutCreateFlags::empty(),
         set_layouts: vec![],
         push_constant_ranges: vec![],
         chain: None,
@@ -166,50 +167,50 @@ pub fn create_pipeline_layout(
 }
 
 pub fn create_pipeline(
-    device: &dacite::core::Device,
-    render_pass: &dacite::core::RenderPass,
-    extent: &dacite::core::Extent2D
-) -> Result<dacite::core::Pipeline, ()> {
+    device: &dc::Device,
+    render_pass: &dc::RenderPass,
+    extent: &dc::Extent2D
+) -> Result<dc::Pipeline, ()> {
     let vertex_shader = create_vertex_shader(device)?;
     let fragment_shader = create_fragment_shader(device)?;
     let layout = create_pipeline_layout(device)?;
 
-    let create_infos = vec![dacite::core::GraphicsPipelineCreateInfo {
-        flags: dacite::core::PipelineCreateFlags::empty(),
+    let create_infos = vec![dc::GraphicsPipelineCreateInfo {
+        flags: dc::PipelineCreateFlags::empty(),
         stages: vec![
-            dacite::core::PipelineShaderStageCreateInfo {
-                flags: dacite::core::PipelineShaderStageCreateFlags::empty(),
-                stage: dacite::core::SHADER_STAGE_VERTEX_BIT,
+            dc::PipelineShaderStageCreateInfo {
+                flags: dc::PipelineShaderStageCreateFlags::empty(),
+                stage: dc::SHADER_STAGE_VERTEX_BIT,
                 module: vertex_shader.clone(),
                 name: "main".to_owned(),
                 specialization_info: None,
                 chain: None,
             },
-            dacite::core::PipelineShaderStageCreateInfo {
-                flags: dacite::core::PipelineShaderStageCreateFlags::empty(),
-                stage: dacite::core::SHADER_STAGE_FRAGMENT_BIT,
+            dc::PipelineShaderStageCreateInfo {
+                flags: dc::PipelineShaderStageCreateFlags::empty(),
+                stage: dc::SHADER_STAGE_FRAGMENT_BIT,
                 module: fragment_shader.clone(),
                 name: "main".to_owned(),
                 specialization_info: None,
                 chain: None,
             },
         ],
-        vertex_input_state: dacite::core::PipelineVertexInputStateCreateInfo {
-            flags: dacite::core::PipelineVertexInputStateCreateFlags::empty(),
+        vertex_input_state: dc::PipelineVertexInputStateCreateInfo {
+            flags: dc::PipelineVertexInputStateCreateFlags::empty(),
             vertex_binding_descriptions: vec![],
             vertex_attribute_descriptions: vec![],
             chain: None,
         },
-        input_assembly_state: dacite::core::PipelineInputAssemblyStateCreateInfo {
-            flags: dacite::core::PipelineInputAssemblyStateCreateFlags::empty(),
-            topology: dacite::core::PrimitiveTopology::TriangleList,
+        input_assembly_state: dc::PipelineInputAssemblyStateCreateInfo {
+            flags: dc::PipelineInputAssemblyStateCreateFlags::empty(),
+            topology: dc::PrimitiveTopology::TriangleList,
             primitive_restart_enable: false,
             chain: None,
         },
         tessellation_state: None,
-        viewport_state: Some(dacite::core::PipelineViewportStateCreateInfo {
-            flags: dacite::core::PipelineViewportStateCreateFlags::empty(),
-            viewports: vec![dacite::core::Viewport {
+        viewport_state: Some(dc::PipelineViewportStateCreateInfo {
+            flags: dc::PipelineViewportStateCreateFlags::empty(),
+            viewports: vec![dc::Viewport {
                 x: 0.0,
                 y: 0.0,
                 width: extent.width as f32,
@@ -217,17 +218,17 @@ pub fn create_pipeline(
                 min_depth: 0.0,
                 max_depth: 1.0,
             }],
-            scissors: vec![dacite::core::Rect2D::new(dacite::core::Offset2D::zero(),
+            scissors: vec![dc::Rect2D::new(dc::Offset2D::zero(),
                                                      *extent)],
             chain: None,
         }),
-        rasterization_state: dacite::core::PipelineRasterizationStateCreateInfo {
-            flags: dacite::core::PipelineRasterizationStateCreateFlags::empty(),
+        rasterization_state: dc::PipelineRasterizationStateCreateInfo {
+            flags: dc::PipelineRasterizationStateCreateFlags::empty(),
             depth_clamp_enable: false,
             rasterizer_discard_enable: false,
-            polygon_mode: dacite::core::PolygonMode::Fill,
-            cull_mode: dacite::core::CULL_MODE_NONE,
-            front_face: dacite::core::FrontFace::Clockwise,
+            polygon_mode: dc::PolygonMode::Fill,
+            cull_mode: dc::CULL_MODE_NONE,
+            front_face: dc::FrontFace::Clockwise,
             depth_bias_enable: false,
             depth_bias_constant_factor: 0.0,
             depth_bias_clamp: 0.0,
@@ -235,9 +236,9 @@ pub fn create_pipeline(
             line_width: 1.0,
             chain: None,
         },
-        multisample_state: Some(dacite::core::PipelineMultisampleStateCreateInfo {
-            flags: dacite::core::PipelineMultisampleStateCreateFlags::empty(),
-            rasterization_samples: dacite::core::SAMPLE_COUNT_1_BIT,
+        multisample_state: Some(dc::PipelineMultisampleStateCreateInfo {
+            flags: dc::PipelineMultisampleStateCreateFlags::empty(),
+            rasterization_samples: dc::SAMPLE_COUNT_1_BIT,
             sample_shading_enable: false,
             min_sample_shading: 1.0,
             sample_mask: vec![],
@@ -246,19 +247,19 @@ pub fn create_pipeline(
             chain: None,
         }),
         depth_stencil_state: None,
-        color_blend_state: Some(dacite::core::PipelineColorBlendStateCreateInfo {
-            flags: dacite::core::PipelineColorBlendStateCreateFlags::empty(),
+        color_blend_state: Some(dc::PipelineColorBlendStateCreateInfo {
+            flags: dc::PipelineColorBlendStateCreateFlags::empty(),
             logic_op_enable: false,
-            logic_op: dacite::core::LogicOp::Copy,
-            attachments: vec![dacite::core::PipelineColorBlendAttachmentState {
+            logic_op: dc::LogicOp::Copy,
+            attachments: vec![dc::PipelineColorBlendAttachmentState {
                 blend_enable: false,
-                src_color_blend_factor: dacite::core::BlendFactor::One,
-                dst_color_blend_factor: dacite::core::BlendFactor::Zero,
-                color_blend_op: dacite::core::BlendOp::Add,
-                src_alpha_blend_factor: dacite::core::BlendFactor::One,
-                dst_alpha_blend_factor: dacite::core::BlendFactor::Zero,
-                alpha_blend_op: dacite::core::BlendOp::Add,
-                color_write_mask: dacite::core::COLOR_COMPONENT_R_BIT | dacite::core::COLOR_COMPONENT_G_BIT | dacite::core::COLOR_COMPONENT_B_BIT,
+                src_color_blend_factor: dc::BlendFactor::One,
+                dst_color_blend_factor: dc::BlendFactor::Zero,
+                color_blend_op: dc::BlendOp::Add,
+                src_alpha_blend_factor: dc::BlendFactor::One,
+                dst_alpha_blend_factor: dc::BlendFactor::Zero,
+                alpha_blend_op: dc::BlendOp::Add,
+                color_write_mask: dc::COLOR_COMPONENT_R_BIT | dc::COLOR_COMPONENT_G_BIT | dc::COLOR_COMPONENT_B_BIT,
             }],
             blend_constants: [0.0, 0.0, 0.0, 0.0],
             chain: None,
@@ -282,11 +283,11 @@ pub fn create_pipeline(
 }
 
 pub fn create_command_pool(
-    device: &dacite::core::Device,
+    device: &dc::Device,
     queue_family_index: u32
-) -> Result<dacite::core::CommandPool, ()> {
-    let create_info = dacite::core::CommandPoolCreateInfo {
-        flags: dacite::core::CommandPoolCreateFlags::empty(),
+) -> Result<dc::CommandPool, ()> {
+    let create_info = dc::CommandPoolCreateInfo {
+        flags: dc::CommandPoolCreateFlags::empty(),
         queue_family_index: queue_family_index,
         chain: None,
     };
@@ -297,26 +298,26 @@ pub fn create_command_pool(
 }
 
 pub fn record_command_buffer(
-    command_pool: &dacite::core::CommandPool,
-    pipeline: &dacite::core::Pipeline,
-    framebuffers: &[dacite::core::Framebuffer],
-    render_pass: &dacite::core::RenderPass,
-    extent: &dacite::core::Extent2D
-) -> Result<Vec<dacite::core::CommandBuffer>, ()> {
-    let allocate_info = dacite::core::CommandBufferAllocateInfo {
+    command_pool: &dc::CommandPool,
+    pipeline: &dc::Pipeline,
+    framebuffers: &[dc::Framebuffer],
+    render_pass: &dc::RenderPass,
+    extent: &dc::Extent2D
+) -> Result<Vec<dc::CommandBuffer>, ()> {
+    let allocate_info = dc::CommandBufferAllocateInfo {
         command_pool: command_pool.clone(),
-        level: dacite::core::CommandBufferLevel::Primary,
+        level: dc::CommandBufferLevel::Primary,
         command_buffer_count: framebuffers.len() as u32,
         chain: None,
     };
 
-    let command_buffers = dacite::core::CommandPool::allocate_command_buffers(&allocate_info).map_err(|e| {
+    let command_buffers = dc::CommandPool::allocate_command_buffers(&allocate_info).map_err(|e| {
         println!("Failed to allocate command buffers ({})", e);
     })?;
 
     for (command_buffer, framebuffer) in command_buffers.iter().zip(framebuffers.iter()) {
-        let begin_info = dacite::core::CommandBufferBeginInfo {
-            flags: dacite::core::CommandBufferUsageFlags::empty(),
+        let begin_info = dc::CommandBufferBeginInfo {
+            flags: dc::CommandBufferUsageFlags::empty(),
             inheritance_info: None,
             chain: None,
         };
@@ -325,16 +326,16 @@ pub fn record_command_buffer(
             println!("Failed to begin command buffer ({})", e);
         })?;
 
-        let begin_info = dacite::core::RenderPassBeginInfo {
+        let begin_info = dc::RenderPassBeginInfo {
             render_pass: render_pass.clone(),
             framebuffer: framebuffer.clone(),
-            render_area: dacite::core::Rect2D::new(dacite::core::Offset2D::zero(), *extent),
-            clear_values: vec![dacite::core::ClearValue::Color(dacite::core::ClearColorValue::Float32([0.0, 0.0, 0.0, 1.0]))],
+            render_area: dc::Rect2D::new(dc::Offset2D::zero(), *extent),
+            clear_values: vec![dc::ClearValue::Color(dc::ClearColorValue::Float32([0.0, 0.0, 0.0, 1.0]))],
             chain: None,
         };
 
-        command_buffer.begin_render_pass(&begin_info, dacite::core::SubpassContents::Inline);
-        command_buffer.bind_pipeline(dacite::core::PipelineBindPoint::Graphics, pipeline);
+        command_buffer.begin_render_pass(&begin_info, dc::SubpassContents::Inline);
+        command_buffer.bind_pipeline(dc::PipelineBindPoint::Graphics, pipeline);
         command_buffer.draw(3, 1, 0, 0);
 
         command_buffer.end_render_pass();
@@ -347,10 +348,10 @@ pub fn record_command_buffer(
 }
 
 pub fn create_semaphores(
-    device: &dacite::core::Device
-) -> Result<(dacite::core::Semaphore, dacite::core::Semaphore), ()> {
-    let create_info = dacite::core::SemaphoreCreateInfo {
-        flags: dacite::core::SemaphoreCreateFlags::empty(),
+    device: &dc::Device
+) -> Result<(dc::Semaphore, dc::Semaphore), ()> {
+    let create_info = dc::SemaphoreCreateInfo {
+        flags: dc::SemaphoreCreateFlags::empty(),
         chain: None,
     };
 
