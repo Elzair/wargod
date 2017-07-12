@@ -1,10 +1,11 @@
-extern crate dacite;
-extern crate dacite_winit;
-extern crate winit;
+// extern crate dacite;
+// extern crate dacite_winit;
+// extern crate winit;
 
 use std::time::Duration;
 use window;
 use dacite::core as dc;
+use dacite::khr_swapchain::{AcquireNextImageResultKhr, PresentInfoKhr};
 
 pub mod core;
 
@@ -20,17 +21,17 @@ pub struct Renderer {
 impl Renderer {
     pub fn new(window: &window::Window) -> Result<Self, ()> {
         let core = core::Core::new(window)?;
-        let pipeline = create_pipeline(&core.device.device,
+        let pipeline = create_pipeline(&core.internal.device,
                                        &core.render_pass,
                                        &window.extent)?;
-        let command_pool = create_command_pool(&core.device.device,
-                                               core.device.queue_family_indices.graphics)?;
+        let command_pool = create_command_pool(&core.internal.device,
+                                               core.internal.queue_family_indices.graphics)?;
         let command_buffers = record_command_buffer(&command_pool,
                                                     &pipeline,
                                                     &core.framebuffers,
                                                     &core.render_pass,
                                                     &window.extent)?;
-        let (image_acquired, image_rendered) = create_semaphores(&core.device.device)?;
+        let (image_acquired, image_rendered) = create_semaphores(&core.internal.device)?;
 
         window.window.show();
 
@@ -50,10 +51,10 @@ impl Renderer {
         })?;
 
         let next_image = match next_image_res {
-            dacite::khr_swapchain::AcquireNextImageResultKhr::Index(idx) |
-            dacite::khr_swapchain::AcquireNextImageResultKhr::Suboptimal(idx) => idx,
-            dacite::khr_swapchain::AcquireNextImageResultKhr::Timeout |
-            dacite::khr_swapchain::AcquireNextImageResultKhr::NotReady => return Ok(()),
+            AcquireNextImageResultKhr::Index(idx) |
+            AcquireNextImageResultKhr::Suboptimal(idx) => idx,
+            AcquireNextImageResultKhr::Timeout |
+            AcquireNextImageResultKhr::NotReady => return Ok(()),
         };
 
         let submit_infos = vec![dc::SubmitInfo {
@@ -64,11 +65,11 @@ impl Renderer {
             chain: None,
         }];
 
-        self.core.device.graphics_queue.submit(Some(&submit_infos), None).map_err(|e| {
+        self.core.internal.graphics_queue.submit(Some(&submit_infos), None).map_err(|e| {
             println!("Failed to submit command buffer ({})", e);
         })?;
 
-        let mut present_info = dacite::khr_swapchain::PresentInfoKhr {
+        let mut present_info = PresentInfoKhr {
             wait_semaphores: vec![self.image_rendered.clone()],
             swapchains: vec![self.core.swapchain.clone()],
             image_indices: vec![next_image as u32],
@@ -76,7 +77,7 @@ impl Renderer {
             chain: None,
         };
 
-        self.core.device.present_queue.queue_present_khr(&mut present_info).map_err(|e| {
+        self.core.internal.present_queue.queue_present_khr(&mut present_info).map_err(|e| {
             println!("Failed to present image ({})", e);
         })?;
 

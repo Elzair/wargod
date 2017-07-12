@@ -1,9 +1,11 @@
-extern crate winit;
-extern crate dacite;
-extern crate dacite_winit;
+// extern crate winit;
+// extern crate dacite;
+// extern crate dacite_winit;
 use std::cmp;
 use window;
 use dacite::core as dc;
+use dacite::khr_swapchain as ds;
+use dacite::khr_surface::{COMPOSITE_ALPHA_OPAQUE_BIT_KHR, ColorSpaceKhr, PresentModeKhr};
 
 pub mod device;
 
@@ -11,30 +13,30 @@ struct SwapchainSettings {
     format: dc::Format,
     image_views: Vec<dc::ImageView>,
     extent: dc::Extent2D,
-    swapchain: dacite::khr_swapchain::SwapchainKhr,
+    swapchain: ds::SwapchainKhr,
 }
 
 pub struct Core {
     pub framebuffers: Vec<dc::Framebuffer>,
     pub render_pass: dc::RenderPass,
     pub image_views: Vec<dc::ImageView>,
-    pub swapchain: dacite::khr_swapchain::SwapchainKhr,
-    pub device: device::Internal,
+    pub swapchain: ds::SwapchainKhr,
+    pub internal: device::Internal,
 }
 
 impl Core {
     pub fn new(window: &window::Window) -> Result<Self, ()> {
-        let device = device::Internal::new(window)?;
+        let internal = device::Internal::new(window)?;
         
-        let swapchain_settings = create_swapchain(&device, &window.extent)?;
+        let swapchain_settings = create_swapchain(&internal, &window.extent)?;
 
-        let render_pass = create_render_pass(&device.device, &swapchain_settings)?;
-        let framebuffers = create_framebuffers(&device.device,
+        let render_pass = create_render_pass(&internal.device, &swapchain_settings)?;
+        let framebuffers = create_framebuffers(&internal.device,
                                                &swapchain_settings,
                                                &render_pass)?;
 
         Ok(Core {
-            device: device,
+            internal: internal,
             swapchain: swapchain_settings.swapchain,
             image_views: swapchain_settings.image_views,
             render_pass: render_pass,
@@ -65,7 +67,7 @@ fn create_swapchain(
     let mut color_space = None;
     for surface_format in surface_formats {
         if (surface_format.format == dc::Format::B8G8R8A8_UNorm) &&
-            (surface_format.color_space == dacite::khr_surface::ColorSpaceKhr::SRGBNonLinear) {
+            (surface_format.color_space == ColorSpaceKhr::SRGBNonLinear) {
             format = Some(surface_format.format);
             color_space = Some(surface_format.color_space);
             break;
@@ -94,12 +96,12 @@ fn create_swapchain(
 
     let mut present_mode = None;
     for mode in present_modes {
-        if mode == dacite::khr_surface::PresentModeKhr::Fifo {
-            present_mode = Some(dacite::khr_surface::PresentModeKhr::Fifo);
+        if mode == PresentModeKhr::Fifo {
+            present_mode = Some(PresentModeKhr::Fifo);
             break;
         }
-        else if mode == dacite::khr_surface::PresentModeKhr::Immediate {
-            present_mode = Some(dacite::khr_surface::PresentModeKhr::Immediate);
+        else if mode == PresentModeKhr::Immediate {
+            present_mode = Some(PresentModeKhr::Immediate);
         }
     }
 
@@ -108,8 +110,8 @@ fn create_swapchain(
         return Err(());
     }
 
-    let create_info = dacite::khr_swapchain::SwapchainCreateInfoKhr {
-        flags: dacite::khr_swapchain::SwapchainCreateFlagsKhr::empty(),
+    let create_info = ds::SwapchainCreateInfoKhr {
+        flags: ds::SwapchainCreateFlagsKhr::empty(),
         surface: device.surface.clone(),
         min_image_count: min_image_count,
         image_format: format,
@@ -120,7 +122,7 @@ fn create_swapchain(
         image_sharing_mode: image_sharing_mode,
         queue_family_indices: queue_family_indices,
         pre_transform: capabilities.current_transform,
-        composite_alpha: dacite::khr_surface::COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+        composite_alpha: COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
         present_mode: present_mode.unwrap(),
         clipped: true,
         old_swapchain: None,
