@@ -8,12 +8,12 @@ use std::time::Duration;
 use window;
 
 pub struct Renderer {
-    pub core: core::Core,
-    pub pipeline: dacite::core::Pipeline,
-    pub command_pool: dacite::core::CommandPool,
-    pub command_buffers: Vec<dacite::core::CommandBuffer>,
-    pub image_acquired: dacite::core::Semaphore,
     pub image_rendered: dacite::core::Semaphore,
+    pub image_acquired: dacite::core::Semaphore,
+    pub command_buffers: Vec<dacite::core::CommandBuffer>,
+    pub command_pool: dacite::core::CommandPool,
+    pub pipeline: dacite::core::Pipeline,
+    pub core: core::Core,
 }
 
 impl Renderer {

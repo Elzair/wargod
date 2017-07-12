@@ -7,18 +7,18 @@ use window;
 pub mod device;
 
 struct SwapchainSettings {
-    swapchain: dacite::khr_swapchain::SwapchainKhr,
-    extent: dacite::core::Extent2D,
-    image_views: Vec<dacite::core::ImageView>,
     format: dacite::core::Format,
+    image_views: Vec<dacite::core::ImageView>,
+    extent: dacite::core::Extent2D,
+    swapchain: dacite::khr_swapchain::SwapchainKhr,
 }
 
 pub struct Core {
-    pub device: device::Device,
-    pub swapchain: dacite::khr_swapchain::SwapchainKhr,
-    pub image_views: Vec<dacite::core::ImageView>,
-    pub render_pass: dacite::core::RenderPass,
     pub framebuffers: Vec<dacite::core::Framebuffer>,
+    pub render_pass: dacite::core::RenderPass,
+    pub image_views: Vec<dacite::core::ImageView>,
+    pub swapchain: dacite::khr_swapchain::SwapchainKhr,
+    pub device: device::Device,
 }
 
 impl Core {

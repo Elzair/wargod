@@ -16,13 +16,13 @@ pub struct DeviceSettings {
 }
 
 pub struct Device {
-    pub instance: dacite::core::Instance,
-    pub surface: dacite::khr_surface::SurfaceKhr,
-    pub physical_device: dacite::core::PhysicalDevice,
-    pub device: dacite::core::Device,
-    pub queue_family_indices: QueueFamilyIndices,
     pub graphics_queue: dacite::core::Queue,
     pub present_queue: dacite::core::Queue,
+    pub queue_family_indices: QueueFamilyIndices,
+    pub device: dacite::core::Device,
+    pub surface: dacite::khr_surface::SurfaceKhr,
+    pub physical_device: dacite::core::PhysicalDevice,
+    pub instance: dacite::core::Instance,
 }
 
 impl Device {
