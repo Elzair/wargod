@@ -10,7 +10,7 @@ pub mod window;
 fn main() {
     let preferred_extent = dacite::core::Extent2D::new(800, 600);
     let mut window = window::Window::new(preferred_extent).unwrap();
-    let renderer = renderer::Renderer::new(&window).unwrap();
+    let renderer = Box::new(renderer::Renderer::new(&window).unwrap());
 
     window.window.show();
     

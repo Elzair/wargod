@@ -6,16 +6,17 @@ use window;
 
 pub mod device;
 
-pub struct SwapchainSettings {
-    pub swapchain: dacite::khr_swapchain::SwapchainKhr,
-    pub extent: dacite::core::Extent2D,
-    pub image_views: Vec<dacite::core::ImageView>,
-    pub format: dacite::core::Format,
+struct SwapchainSettings {
+    swapchain: dacite::khr_swapchain::SwapchainKhr,
+    extent: dacite::core::Extent2D,
+    image_views: Vec<dacite::core::ImageView>,
+    format: dacite::core::Format,
 }
 
 pub struct Core {
     pub device: device::Device,
-    pub swapchain: SwapchainSettings,
+    pub swapchain: dacite::khr_swapchain::SwapchainKhr,
+    pub image_views: Vec<dacite::core::ImageView>,
     pub render_pass: dacite::core::RenderPass,
     pub framebuffers: Vec<dacite::core::Framebuffer>,
 }
@@ -33,14 +34,15 @@ impl Core {
 
         Ok(Core {
             device: device,
-            swapchain: swapchain_settings,
+            swapchain: swapchain_settings.swapchain,
+            image_views: swapchain_settings.image_views,
             render_pass: render_pass,
             framebuffers: framebuffers,
         })
     }
 }
 
-pub fn create_swapchain(
+fn create_swapchain(
     device: &device::Device,
     preferred_extent: &dacite::core::Extent2D
 ) -> Result<SwapchainSettings, ()> {

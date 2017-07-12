@@ -44,7 +44,7 @@ impl Renderer {
     }
 
     pub fn render(&self) -> Result<(), ()> {
-        let next_image_res = self.core.swapchain.swapchain.acquire_next_image_khr(dacite::core::Timeout::Some(Duration::from_millis(17)), Some(&self.image_acquired), None).map_err(|e| {
+        let next_image_res = self.core.swapchain.acquire_next_image_khr(dacite::core::Timeout::Some(Duration::from_millis(17)), Some(&self.image_acquired), None).map_err(|e| {
             println!("Failed to acquire next image ({})", e);
         })?;
 
@@ -69,7 +69,7 @@ impl Renderer {
 
         let mut present_info = dacite::khr_swapchain::PresentInfoKhr {
             wait_semaphores: vec![self.image_rendered.clone()],
-            swapchains: vec![self.core.swapchain.swapchain.clone()],
+            swapchains: vec![self.core.swapchain.clone()],
             image_indices: vec![next_image as u32],
             results: None,
             chain: None,

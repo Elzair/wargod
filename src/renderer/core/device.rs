@@ -56,7 +56,7 @@ impl Device {
             present_queue: present_queue,
         })
     }
-}
+ }
 
 fn compute_instance_extensions(
     window: &winit::Window
