@@ -1,7 +1,6 @@
-extern crate winit;
-extern crate dacite;
-extern crate dacite_winit;
-use dacite_winit::WindowExt;
+use dacite;
+use dacite_winit::{self,WindowExt};
+use winit;
 use window;
 use dacite::core as dc;
 

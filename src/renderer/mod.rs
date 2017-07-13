@@ -22,14 +22,14 @@ impl Renderer {
     pub fn new(window: &window::Window) -> Result<Self, ()> {
         let core = core::Core::new(window)?;
         let pipeline = create_pipeline(&core.internal.device,
-                                       &core.render_pass,
+                                       &core.swapchain.render_pass,
                                        &window.extent)?;
         let command_pool = create_command_pool(&core.internal.device,
                                                core.internal.queue_family_indices.graphics)?;
         let command_buffers = record_command_buffer(&command_pool,
                                                     &pipeline,
-                                                    &core.framebuffers,
-                                                    &core.render_pass,
+                                                    &core.swapchain.framebuffers,
+                                                    &core.swapchain.render_pass,
                                                     &window.extent)?;
         let (image_acquired, image_rendered) = create_semaphores(&core.internal.device)?;
 
@@ -46,7 +46,7 @@ impl Renderer {
     }
 
     pub fn render(&self) -> Result<(), ()> {
-        let next_image_res = self.core.swapchain.acquire_next_image_khr(dc::Timeout::Some(Duration::from_millis(17)), Some(&self.image_acquired), None).map_err(|e| {
+        let next_image_res = self.core.swapchain.swapchain.acquire_next_image_khr(dc::Timeout::Some(Duration::from_millis(17)), Some(&self.image_acquired), None).map_err(|e| {
             println!("Failed to acquire next image ({})", e);
         })?;
 
@@ -71,7 +71,7 @@ impl Renderer {
 
         let mut present_info = PresentInfoKhr {
             wait_semaphores: vec![self.image_rendered.clone()],
-            swapchains: vec![self.core.swapchain.clone()],
+            swapchains: vec![self.core.swapchain.swapchain.clone()],
             image_indices: vec![next_image as u32],
             results: None,
             chain: None,
