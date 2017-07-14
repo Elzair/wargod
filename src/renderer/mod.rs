@@ -21,17 +21,17 @@ pub struct Renderer {
 impl Renderer {
     pub fn new(window: &window::Window) -> Result<Self, ()> {
         let core = core::Core::new(window)?;
-        let pipeline = create_pipeline(&core.internal.device,
+        let pipeline = create_pipeline(&core.device.device,
                                        &core.swapchain.render_pass,
                                        &window.extent)?;
-        let command_pool = create_command_pool(&core.internal.device,
-                                               core.internal.queue_family_indices.graphics)?;
+        let command_pool = create_command_pool(&core.device.device,
+                                               core.device.queue_family_indices.graphics)?;
         let command_buffers = record_command_buffer(&command_pool,
                                                     &pipeline,
                                                     &core.swapchain.framebuffers,
                                                     &core.swapchain.render_pass,
                                                     &window.extent)?;
-        let (image_acquired, image_rendered) = create_semaphores(&core.internal.device)?;
+        let (image_acquired, image_rendered) = create_semaphores(&core.device.device)?;
 
         window.window.show();
 
@@ -46,7 +46,8 @@ impl Renderer {
     }
 
     pub fn render(&self) -> Result<(), ()> {
-        let next_image_res = self.core.swapchain.swapchain.acquire_next_image_khr(dc::Timeout::Some(Duration::from_millis(17)), Some(&self.image_acquired), None).map_err(|e| {
+        let next_image_res = self.core.swapchain.swapchain.acquire_next_image_khr(dc::Timeout::Some(Duration::from_millis(17)),
+                                                                                  Some(&self.image_acquired), None).map_err(|e| {
             println!("Failed to acquire next image ({})", e);
         })?;
 
@@ -65,7 +66,7 @@ impl Renderer {
             chain: None,
         }];
 
-        self.core.internal.graphics_queue.submit(Some(&submit_infos), None).map_err(|e| {
+        self.core.device.graphics_queue.submit(Some(&submit_infos), None).map_err(|e| {
             println!("Failed to submit command buffer ({})", e);
         })?;
 
@@ -77,7 +78,7 @@ impl Renderer {
             chain: None,
         };
 
-        self.core.internal.present_queue.queue_present_khr(&mut present_info).map_err(|e| {
+        self.core.device.present_queue.queue_present_khr(&mut present_info).map_err(|e| {
             println!("Failed to present image ({})", e);
         })?;
 

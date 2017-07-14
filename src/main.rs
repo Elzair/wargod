@@ -26,12 +26,12 @@ fn main() {
 
         renderer.render().unwrap();
 
-        renderer.core.internal.device.wait_idle().map_err(|e| {
+        renderer.core.device.device.wait_idle().map_err(|e| {
             println!("Failed to wait for device becoming idle ({})", e);
         }).unwrap();
     }
 
-    renderer.core.internal.device.wait_idle().map_err(|e| {
+    renderer.core.device.device.wait_idle().map_err(|e| {
         println!("Failed to wait for device becoming idle ({})", e);
     }).unwrap();
 
