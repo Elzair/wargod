@@ -33,8 +33,6 @@ impl Renderer {
                                                     &window.extent)?;
         let (image_acquired, image_rendered) = create_semaphores(&core.device.device)?;
 
-        window.window.show();
-
         Ok(Renderer {
             core: core,
             pipeline: pipeline,
@@ -86,7 +84,7 @@ impl Renderer {
     }
 }
 
-pub fn create_vertex_shader(
+fn create_vertex_shader(
     device: &dc::Device
 ) -> Result<dc::ShaderModule, ()> {
     let vertex_shader_bytes = glsl_vs!{r#"
@@ -127,7 +125,7 @@ pub fn create_vertex_shader(
     })
 }
 
-pub fn create_fragment_shader(
+fn create_fragment_shader(
     device: &dc::Device
 ) -> Result<dc::ShaderModule, ()> {
     let fragment_shader_bytes = glsl_fs!{r#"
@@ -153,7 +151,7 @@ pub fn create_fragment_shader(
     })
 }
 
-pub fn create_pipeline_layout(
+fn create_pipeline_layout(
     device: &dc::Device
 ) -> Result<dc::PipelineLayout, ()> {
     let create_info = dc::PipelineLayoutCreateInfo {
@@ -168,7 +166,7 @@ pub fn create_pipeline_layout(
     })
 }
 
-pub fn create_pipeline(
+fn create_pipeline(
     device: &dc::Device,
     render_pass: &dc::RenderPass,
     extent: &dc::Extent2D
@@ -299,7 +297,7 @@ pub fn create_command_pool(
     })
 }
 
-pub fn record_command_buffer(
+fn record_command_buffer(
     command_pool: &dc::CommandPool,
     pipeline: &dc::Pipeline,
     framebuffers: &[dc::Framebuffer],
@@ -349,7 +347,7 @@ pub fn record_command_buffer(
     Ok(command_buffers)
 }
 
-pub fn create_semaphores(
+fn create_semaphores(
     device: &dc::Device
 ) -> Result<(dc::Semaphore, dc::Semaphore), ()> {
     let create_info = dc::SemaphoreCreateInfo {
