@@ -65,80 +65,89 @@ use vulkano::sync::GpuFuture;
 
 use std::sync::Arc;
 
+mod framework;
+
 fn main() {
-    // The start of this example is exactly the same as `triangle`. You should read the
-    // `triangle` example if you haven't done so yet.
+    let mut events_loop = framework::input::make_event_loop();
+    let gfx_core = framework::gfx::Core::new(&events_loop).unwrap();
+    // // The start of this example is exactly the same as `triangle`. You should read the
+    // // `triangle` example if you haven't done so yet.
 
-    let extensions = vulkano_win::required_extensions();
-    let instance = vulkano::instance::Instance::new(None, &extensions, None).expect("failed to create instance");
+    // let extensions = vulkano_win::required_extensions();
+    // let instance = vulkano::instance::Instance::new(None, &extensions, None).expect("failed to create instance");
 
-    let physical = vulkano::instance::PhysicalDevice::enumerate(&instance)
-                            .next().expect("no device available");
-    println!("Using device: {} (type: {:?})", physical.name(), physical.ty());
+    // let physical = vulkano::instance::PhysicalDevice::enumerate(&instance)
+    //                         .next().expect("no device available");
+    // println!("Using device: {} (type: {:?})", physical.name(), physical.ty());
 
-    let mut events_loop = winit::EventsLoop::new();
-    let window = winit::WindowBuilder::new().build_vk_surface(&events_loop, instance.clone()).unwrap();
+    // let mut events_loop = winit::EventsLoop::new();
+    // let window = winit::WindowBuilder::new().build_vk_surface(&events_loop, instance.clone()).unwrap();
 
-    let mut dimensions = {
-        let (width, height) = window.window().get_inner_size_pixels().unwrap();
-        [width, height]
-    };
+    // let mut dimensions = {
+    //     let (width, height) = window.window().get_inner_size_pixels().unwrap();
+    //     [width, height]
+    // };
 
-    let queue = physical.queue_families().find(|&q| q.supports_graphics() &&
-                                                   window.surface().is_supported(q).unwrap_or(false))
-                                                .expect("couldn't find a graphical queue family");
+    // let queue = physical.queue_families().find(|&q| q.supports_graphics() &&
+    //                                                window.surface().is_supported(q).unwrap_or(false))
+    //                                             .expect("couldn't find a graphical queue family");
 
-    let device_ext = vulkano::device::DeviceExtensions {
-        khr_swapchain: true,
-        .. vulkano::device::DeviceExtensions::none()
-    };
+    // let device_ext = vulkano::device::DeviceExtensions {
+    //     khr_swapchain: true,
+    //     .. vulkano::device::DeviceExtensions::none()
+    // };
 
-    let (device, mut queues) = vulkano::device::Device::new(physical, physical.supported_features(),
-                                                            &device_ext, [(queue, 0.5)].iter().cloned())
-                               .expect("failed to create device");
-    let queue = queues.next().unwrap();
+    // let (device, mut queues) = vulkano::device::Device::new(physical, physical.supported_features(),
+    //                                                         &device_ext, [(queue, 0.5)].iter().cloned())
+    //                            .expect("failed to create device");
+    // let queue = queues.next().unwrap();
+
+    let mut dims = [gfx_core.dimensions.read().unwrap().width, gfx_core.dimensions.read().unwrap().height];
 
     let (mut swapchain, mut images) = {
-        let caps = window.surface().capabilities(physical).expect("failed to get surface capabilities");
 
-        let usage = caps.supported_usage_flags;
-        let format = caps.supported_formats[0].0;
+        let usage = gfx_core.surface_capabilities.supported_usage_flags;
+        let format = gfx_core.surface_capabilities.supported_formats[0].0;
 
-        vulkano::swapchain::Swapchain::new(device.clone(), window.surface().clone(), caps.min_image_count, format, dimensions, 1,
-                                           usage, &queue, vulkano::swapchain::SurfaceTransform::Identity,
+        vulkano::swapchain::Swapchain::new(gfx_core.device.clone(),
+                                           gfx_core.window.surface().clone(),
+                                           gfx_core.surface_capabilities.min_image_count,
+                                           format,
+                                           dims,
+                                           1, usage, &gfx_core.queue, vulkano::swapchain::SurfaceTransform::Identity,
                                            vulkano::swapchain::CompositeAlpha::Opaque,
                                            vulkano::swapchain::PresentMode::Fifo, true, None).expect("failed to create swapchain")
     };
 
 
-    let mut depth_buffer = vulkano::image::attachment::AttachmentImage::transient(device.clone(), dimensions, vulkano::format::D16Unorm).unwrap();
+    let mut depth_buffer = vulkano::image::attachment::AttachmentImage::transient(gfx_core.device.clone(), dims, vulkano::format::D16Unorm).unwrap();
 
     let vertex_buffer = vulkano::buffer::cpu_access::CpuAccessibleBuffer
-                                ::from_iter(device.clone(), vulkano::buffer::BufferUsage::all(), Some(queue.family()), VERTICES.iter().cloned())
+                                ::from_iter(gfx_core.device.clone(), vulkano::buffer::BufferUsage::all(), Some(gfx_core.queue.family()), VERTICES.iter().cloned())
                                 .expect("failed to create buffer");
 
     let normals_buffer = vulkano::buffer::cpu_access::CpuAccessibleBuffer
-                                ::from_iter(device.clone(), vulkano::buffer::BufferUsage::all(), Some(queue.family()), NORMALS.iter().cloned())
+                                ::from_iter(gfx_core.device.clone(), vulkano::buffer::BufferUsage::all(), Some(gfx_core.queue.family()), NORMALS.iter().cloned())
                                 .expect("failed to create buffer");
 
     let index_buffer = vulkano::buffer::cpu_access::CpuAccessibleBuffer
-                                ::from_iter(device.clone(), vulkano::buffer::BufferUsage::all(), Some(queue.family()), INDICES.iter().cloned())
+                                ::from_iter(gfx_core.device.clone(), vulkano::buffer::BufferUsage::all(), Some(gfx_core.queue.family()), INDICES.iter().cloned())
                                 .expect("failed to create buffer");
 
     // note: this teapot was meant for OpenGL where the origin is at the lower left
     //       instead the origin is at the upper left in vulkan, so we reverse the Y axis
-    let mut proj = cgmath::perspective(cgmath::Rad(std::f32::consts::FRAC_PI_2), { dimensions[0] as f32 / dimensions[1] as f32 }, 0.01, 100.0);
+    let mut proj = cgmath::perspective(cgmath::Rad(std::f32::consts::FRAC_PI_2), { dims[0] as f32 / dims[1] as f32 }, 0.01, 100.0);
     let view = cgmath::Matrix4::look_at(cgmath::Point3::new(0.3, 0.3, 1.0), cgmath::Point3::new(0.0, 0.0, 0.0), cgmath::Vector3::new(0.0, -1.0, 0.0));
     let scale = cgmath::Matrix4::from_scale(0.01);
 
     let uniform_buffer = vulkano::buffer::cpu_pool::CpuBufferPool::<vs::ty::Data>
-                               ::new(device.clone(), vulkano::buffer::BufferUsage::all(), Some(queue.family()));
+                               ::new(gfx_core.device.clone(), vulkano::buffer::BufferUsage::all(), Some(gfx_core.queue.family()));
 
-    let vs = vs::Shader::load(device.clone()).expect("failed to create shader module");
-    let fs = fs::Shader::load(device.clone()).expect("failed to create shader module");
+    let vs = vs::Shader::load(gfx_core.device.clone()).expect("failed to create shader module");
+    let fs = fs::Shader::load(gfx_core.device.clone()).expect("failed to create shader module");
 
     let renderpass = Arc::new(
-        single_pass_renderpass!(device.clone(),
+        single_pass_renderpass!(gfx_core.device.clone(),
             attachments: {
                 color: {
                     load: Clear,
@@ -168,7 +177,7 @@ fn main() {
         .fragment_shader(fs.main_entry_point(), ())
         .depth_stencil_simple_depth()
         .render_pass(vulkano::framebuffer::Subpass::from(renderpass.clone(), 0).unwrap())
-        .build(device.clone())
+        .build(gfx_core.device.clone())
         .unwrap());
 
     let mut framebuffers = images.iter().map(|image| {
@@ -180,19 +189,19 @@ fn main() {
 
     let mut recreate_swapchain = false;
 
-    let mut previous_frame = Box::new(vulkano::sync::now(device.clone())) as Box<GpuFuture>;
+    let mut previous_frame = Box::new(vulkano::sync::now(gfx_core.device.clone())) as Box<GpuFuture>;
     let rotation_start = std::time::Instant::now();
 
     loop {
         previous_frame.cleanup_finished();
 
         if recreate_swapchain {
-            dimensions = {
-                let (new_width, new_height) = window.window().get_inner_size_pixels().unwrap();
+            dims = {
+                let (new_width, new_height) = gfx_core.window.window().get_inner_size_pixels().unwrap();
                 [new_width, new_height]
             };
             
-            let (new_swapchain, new_images) = match swapchain.recreate_with_dimension(dimensions) {
+            let (new_swapchain, new_images) = match swapchain.recreate_with_dimension(dims) {
                 Ok(r) => r,
                 Err(vulkano::swapchain::SwapchainCreationError::UnsupportedDimensions) => {
                     continue;
@@ -203,7 +212,7 @@ fn main() {
             std::mem::replace(&mut swapchain, new_swapchain);
             std::mem::replace(&mut images, new_images);
 
-            let new_depth_buffer = vulkano::image::attachment::AttachmentImage::transient(device.clone(), dimensions, vulkano::format::D16Unorm).unwrap();
+            let new_depth_buffer = vulkano::image::attachment::AttachmentImage::transient(gfx_core.device.clone(), dims, vulkano::format::D16Unorm).unwrap();
             std::mem::replace(&mut depth_buffer, new_depth_buffer);
 
             let new_framebuffers = images.iter().map(|image| {
@@ -214,7 +223,7 @@ fn main() {
             }).collect::<Vec<_>>();
             std::mem::replace(&mut framebuffers, new_framebuffers);
 
-            proj = cgmath::perspective(cgmath::Rad(std::f32::consts::FRAC_PI_2), { dimensions[0] as f32 / dimensions[1] as f32 }, 0.01, 100.0);
+            proj = cgmath::perspective(cgmath::Rad(std::f32::consts::FRAC_PI_2), { dims[0] as f32 / dims[1] as f32 }, 0.01, 100.0);
 
             recreate_swapchain = false;
         }
@@ -248,7 +257,7 @@ fn main() {
             Err(err) => panic!("{:?}", err)
         };
 
-        let command_buffer = vulkano::command_buffer::AutoCommandBufferBuilder::primary_one_time_submit(device.clone(), queue.family()).unwrap()
+        let command_buffer = vulkano::command_buffer::AutoCommandBufferBuilder::primary_one_time_submit(gfx_core.device.clone(), gfx_core.queue.family()).unwrap()
             .begin_render_pass(
                 framebuffers[image_num].clone(), false,
                 vec![
@@ -261,7 +270,7 @@ fn main() {
                       line_width: None,
                       viewports: Some(vec![vulkano::pipeline::viewport::Viewport {
                           origin: [0.0, 0.0],
-                          dimensions: [dimensions[0] as f32, dimensions[1] as f32],
+                          dimensions: [dims[0] as f32, dims[1] as f32],
                           depth_range: 0.0 .. 1.0,
                       }]),
                       scissors: None,
@@ -272,8 +281,8 @@ fn main() {
             .build().unwrap();
         
         let future = previous_frame.join(acquire_future)
-            .then_execute(queue.clone(), command_buffer).unwrap()
-            .then_swapchain_present(queue.clone(), swapchain.clone(), image_num)
+            .then_execute(gfx_core.queue.clone(), command_buffer).unwrap()
+            .then_swapchain_present(gfx_core.queue.clone(), swapchain.clone(), image_num)
             .then_signal_fence_and_flush().unwrap();
         previous_frame = Box::new(future) as Box<_>;
 
