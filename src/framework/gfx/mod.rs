@@ -5,6 +5,8 @@ use vulkano_win::VkSurfaceBuild;
 
 use std::sync::{Arc,RwLock};
 
+pub mod device;
+
 pub struct Dimensions {
     pub width: u32,
     pub height: u32,
@@ -24,10 +26,10 @@ impl Core {
         let instance = vulkano::instance::Instance::new(None, &extensions, None)
             .expect("failed to create instance");
 
-        let physical = vulkano::instance::PhysicalDevice::enumerate(&instance)
-            .next().expect("no device available");
+        let (_, idx) = device::find_suitable_devices(&instance).into_iter().next()
+            .expect("No suitable devices available");
+        let physical = device::init_physical_device(&instance, Some(idx)).unwrap();
         println!("Using device: {} (type: {:?})", physical.name(), physical.ty());
-
 
         let window = winit::WindowBuilder::new().build_vk_surface(events_loop,
                                                                   instance.clone()).unwrap();
@@ -36,7 +38,7 @@ impl Core {
 
         let queue = physical.queue_families().find(|&q| q.supports_graphics() &&
                                                    window.surface().is_supported(q).unwrap_or(false))
-            .expect("couldn't find a graphical queue family");
+            .expect("Could not find a graphical queue family");
 
         let device_ext = vulkano::device::DeviceExtensions {
             khr_swapchain: true,
@@ -51,7 +53,8 @@ impl Core {
         
         let queue = queues.next().unwrap();
 
-        let surface_capabilities = window.surface().capabilities(physical).expect("failed to get surface capabilities");
+        let surface_capabilities = window.surface().capabilities(physical)
+            .expect("failed to get surface capabilities");
 
         Ok(Core {
             surface_capabilities: surface_capabilities,
