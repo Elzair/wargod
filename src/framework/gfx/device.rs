@@ -1,15 +1,18 @@
 use vulkano;
 use std::sync::Arc;
 
-pub fn find_suitable_devices(instance: &Arc<vulkano::instance::Instance>) 
-                            -> Vec<(String, usize)> {
-    let required_features = vulkano::instance::Features {
+pub fn get_required_features() -> vulkano::instance::Features {
+    vulkano::instance::Features {
         tessellation_shader: true,
         .. vulkano::instance::Features::none()
-    };
+    }
+}
 
+pub fn find_suitable_devices(instance: &Arc<vulkano::instance::Instance>,
+                             required_features: &vulkano::instance::Features ) 
+                            -> Vec<(String, usize)> {
     vulkano::instance::PhysicalDevice::enumerate(&instance)
-        .filter(|ph| ph.supported_features().superset_of(&required_features))
+        .filter(|ph| ph.supported_features().superset_of(required_features))
         .map(|ph| (ph.name(), ph.index()))
         .collect::<Vec<(String, usize)>>()
 }
