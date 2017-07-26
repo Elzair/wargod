@@ -30,15 +30,18 @@ impl Core {
 
         // Create window
         
-        let window = winit::WindowBuilder::new().build_vk_surface(events_loop,
-                                                                  instance.clone()).unwrap();
+        let window = winit::WindowBuilder::new().build_vk_surface(
+            events_loop,
+            instance.clone()
+        ).unwrap();
 
         let (width, height) = window.window().get_inner_size_pixels().unwrap();
 
         // Find Physical Device
         
         let required_features = device::get_required_features();
-        let (_, idx) = device::find_suitable_devices(&instance, &required_features).into_iter().next()
+        let (_, idx) = device::find_suitable_devices(&instance, &required_features)
+            .into_iter().next()
             .expect("No suitable devices available");
 
         let physical = device::init_physical_device(&instance, Some(idx)).unwrap();
@@ -48,9 +51,10 @@ impl Core {
         let surface_capabilities = window.surface().capabilities(physical)
             .expect("failed to get surface capabilities");
 
-        let queue = physical.queue_families().find(|&q| q.supports_graphics() &&
-                                                   window.surface().is_supported(q).unwrap_or(false))
-            .expect("Could not find a graphical queue family");
+        let queue = physical.queue_families().find(|&q| {
+            q.supports_graphics() &&
+                window.surface().is_supported(q).unwrap_or(false)
+        }).expect("Could not find a graphical queue family");
 
         // Create Logical Device
 
@@ -59,11 +63,12 @@ impl Core {
             .. vulkano::device::DeviceExtensions::none()
         };
 
-        let (device, mut queues) = vulkano::device::Device::new(physical,
-                                                                &required_features,
-                                                                &device_extensions,
-                                                                [(queue, 0.5)].iter().cloned())
-            .expect("failed to create device");
+        let (device, mut queues) = vulkano::device::Device::new(
+            physical,
+            &required_features,
+            &device_extensions,
+            [(queue, 0.5)].iter().cloned()
+        ).expect("failed to create device");
         
         // Create Queues
 
@@ -75,7 +80,8 @@ impl Core {
             surface_capabilities: surface_capabilities,
             queue: queue,
             device: device,
-            dimensions: RwLock::new(Dimensions { width: width, height: height}),
+            dimensions: RwLock::new(Dimensions {width: width,
+                                                height: height}),
             window: window,
         })
     }

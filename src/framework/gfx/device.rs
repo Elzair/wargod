@@ -9,7 +9,7 @@ pub fn get_required_features() -> vulkano::instance::Features {
 }
 
 pub fn find_suitable_devices(instance: &Arc<vulkano::instance::Instance>,
-                             required_features: &vulkano::instance::Features ) 
+                             required_features: &vulkano::instance::Features) 
                             -> Vec<(String, usize)> {
     vulkano::instance::PhysicalDevice::enumerate(&instance)
         .filter(|ph| ph.supported_features().superset_of(required_features))
