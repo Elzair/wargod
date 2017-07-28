@@ -4,11 +4,10 @@ use vulkano_win;
 use vulkano_win::VkSurfaceBuild;
 
 use std::sync::{Arc,RwLock};
-use std::mem;
 
 pub use vulkano::swapchain::{AcquireError, SwapchainAcquireFuture};
 
-mod device;
+//mod device;
 
 pub struct Dimensions {
     pub width: u32,
@@ -47,12 +46,12 @@ impl Core {
 
         // Find Physical Device
         
-        let required_features = device::get_required_features();
-        let (_, idx) = device::find_suitable_devices(&instance, &required_features)
+        let required_features = get_required_features();
+        let (_, idx) = find_suitable_devices(&instance, &required_features)
             .into_iter().next()
             .expect("No suitable devices available");
 
-        let physical = device::init_physical_device(&instance, Some(idx)).unwrap();
+        let physical = init_physical_device(&instance, Some(idx)).unwrap();
 
         println!("Using device: {} (type: {:?})", physical.name(), physical.ty());
 
@@ -170,31 +169,10 @@ impl Core {
 
     pub fn acquire_next_framebuffer(&mut self) -> Result<(usize, SwapchainAcquireFuture), AcquireError> {
         vulkano::swapchain::acquire_next_image(self.swapchain.read().unwrap().clone(), None)
-        // let mut swapchain_recreated = false;
-
-
-        
-        // loop {
-        //     let (image_num, acquire_future): (usize, vulkano::swapchain::SwapchainAcquireFuture) = match vulkano::swapchain::acquire_next_image(
-        //         self.swapchain.read().unwrap().clone(),
-        //         None
-        //     ) {
-        //         Ok((idx, future)) => return Ok((idx, swapchain_recreated, future)),
-        //         Err(vulkano::swapchain::AcquireError::OutOfDate) => {
-        //             // Recreate swapchain
-        //             self.recreate_swapchain();
-        //             swapchain_recreated = true;
-        //             continue;
-        //         },
-        //         Err(err) => return Err(err)
-        //     };
-        // }
     }
 
     pub fn recreate_swapchain(&mut self) {
-        println!("Recreating swapchain!");
         loop {
-            println!("Trying again!");
             let (new_width, new_height) = self.window.window()
                 .get_inner_size_pixels().unwrap();
 
@@ -224,6 +202,7 @@ impl Core {
                 Arc::new(fb) as Arc<vulkano::framebuffer::FramebufferAbstract + Send + Sync>
             }).collect::<Vec<_>>();
 
+            // Replace objects in reverse order of creation.
             let mut dimensions_ref = self.dimensions.write().unwrap();
             let mut swapchain_ref = self.swapchain.write().unwrap();
             let mut swapchain_images_ref = self.swapchain_images.write().unwrap();
@@ -233,11 +212,34 @@ impl Core {
             *depth_buffer_ref = new_depth_buffer;
             *swapchain_images_ref = new_images;
             *swapchain_ref = new_swapchain;
-            *dimensions_ref = {
-                Dimensions { width: new_width, height: new_height }
-            };
+            *dimensions_ref = Dimensions { width: new_width, height: new_height };
 
             break;
         }
+    }
+}
+
+fn get_required_features() -> vulkano::instance::Features {
+    vulkano::instance::Features {
+        tessellation_shader: true,
+        .. vulkano::instance::Features::none()
+    }
+}
+
+fn find_suitable_devices(instance: &Arc<vulkano::instance::Instance>,
+                         required_features: &vulkano::instance::Features) 
+                            -> Vec<(String, usize)> {
+    vulkano::instance::PhysicalDevice::enumerate(&instance)
+        .filter(|ph| ph.supported_features().superset_of(required_features))
+        .map(|ph| (ph.name(), ph.index()))
+        .collect::<Vec<(String, usize)>>()
+}
+
+fn init_physical_device(instance: &Arc<vulkano::instance::Instance>,
+                        index: Option<usize>)
+                        -> Option<vulkano::instance::PhysicalDevice> {
+    match index {
+        Some(idx) => vulkano::instance::PhysicalDevice::from_index(instance, idx),
+        None => None
     }
 }
