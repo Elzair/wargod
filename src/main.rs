@@ -69,38 +69,8 @@ mod framework;
 fn main() {
     let mut events_loop = framework::input::make_event_loop();
     let gfx_core = framework::gfx::Core::new(&events_loop).unwrap();
-
-    let mut dims = [gfx_core.dimensions.read().unwrap().width,
-                    gfx_core.dimensions.read().unwrap().height];
-
-    let (mut swapchain, mut images) = {
-
-        let usage = gfx_core.surface_capabilities.supported_usage_flags;
-        let format = gfx_core.surface_capabilities.supported_formats[0].0;
-
-        vulkano::swapchain::Swapchain::new(
-            gfx_core.device.clone(),
-            gfx_core.window.surface().clone(),
-            gfx_core.surface_capabilities.min_image_count,
-            format,
-            dims,
-            1,
-            usage,
-            &gfx_core.queue,
-            vulkano::swapchain::SurfaceTransform::Identity,
-            vulkano::swapchain::CompositeAlpha::Opaque,
-            vulkano::swapchain::PresentMode::Fifo,
-            true,
-            None
-        ).expect("failed to create swapchain")
-    };
-
-
-    let mut depth_buffer = vulkano::image::attachment::AttachmentImage::transient(
-        gfx_core.device.clone(),
-        dims,
-        vulkano::format::D16Unorm
-    ).unwrap();
+    let mut dims = vec![gfx_core.dimensions.read().unwrap().width,
+                        gfx_core.dimensions.read().unwrap().height];
 
     let vertex_buffer = vulkano::buffer::cpu_access::CpuAccessibleBuffer
         ::from_iter(
@@ -149,29 +119,6 @@ fn main() {
     let fs = fs::Shader::load(gfx_core.device.clone())
         .expect("failed to create shader module");
 
-    let renderpass = Arc::new(
-        single_pass_renderpass!(gfx_core.device.clone(),
-            attachments: {
-                color: {
-                    load: Clear,
-                    store: Store,
-                    format: swapchain.format(),
-                    samples: 1,
-                },
-                depth: {
-                    load: Clear,
-                    store: DontCare,
-                    format: vulkano::format::Format::D16Unorm,
-                    samples: 1,
-                }
-            },
-            pass: {
-                color: [color],
-                depth_stencil: {depth}
-            }
-        ).unwrap()
-    );
-
     let pipeline = Arc::new(
         vulkano::pipeline::GraphicsPipeline::start()
             .vertex_input(vulkano::pipeline::vertex::TwoBuffersDefinition::new())
@@ -180,19 +127,10 @@ fn main() {
             .viewports_dynamic_scissors_irrelevant(1)
             .fragment_shader(fs.main_entry_point(), ())
             .depth_stencil_simple_depth()
-            .render_pass(vulkano::framebuffer::Subpass::from(renderpass.clone(),
+            .render_pass(vulkano::framebuffer::Subpass::from(gfx_core.render_pass.clone(),
                                                              0).unwrap())
             .build(gfx_core.device.clone()).unwrap()
     );
-
-    let mut framebuffers = images.iter().map(|image| {
-        Arc::new(vulkano::framebuffer::Framebuffer::start(renderpass.clone())
-            .add(image.clone()).unwrap()
-            .add(depth_buffer.clone()).unwrap()
-            .build().unwrap())
-    }).collect::<Vec<_>>();
-
-    let mut recreate_swapchain = false;
 
     let mut previous_frame = Box::new(vulkano::sync::now(gfx_core.device.clone()))
         as Box<GpuFuture>;
@@ -201,45 +139,16 @@ fn main() {
     loop {
         previous_frame.cleanup_finished();
 
+        let (image_num, recreate_swapchain, acquire_future) =
+            gfx_core.acquire_next_framebuffer().unwrap();
+
         if recreate_swapchain {
-            dims = {
-                let (new_width, new_height) = gfx_core.window.window().get_inner_size_pixels().unwrap();
-                [new_width, new_height]
-            };
-            
-            let (new_swapchain, new_images) = match swapchain.recreate_with_dimension(dims) {
-                Ok(r) => r,
-                Err(vulkano::swapchain::SwapchainCreationError::UnsupportedDimensions) => {
-                    continue;
-                },
-                Err(err) => panic!("{:?}", err)
-            };
-
-            std::mem::replace(&mut swapchain, new_swapchain);
-            std::mem::replace(&mut images, new_images);
-
-            let new_depth_buffer = vulkano::image::attachment::AttachmentImage
-                ::transient(
-                    gfx_core.device.clone(),
-                    dims,
-                    vulkano::format::D16Unorm
-                ).unwrap();
-            std::mem::replace(&mut depth_buffer, new_depth_buffer);
-
-            let new_framebuffers = images.iter().map(|image| {
-                Arc::new(vulkano::framebuffer::Framebuffer::start(renderpass.clone())
-                         .add(image.clone()).unwrap()
-                         .add(depth_buffer.clone()).unwrap()
-                         .build().unwrap())
-            }).collect::<Vec<_>>();
-            std::mem::replace(&mut framebuffers, new_framebuffers);
-
+            dims[0] = gfx_core.dimensions.read().unwrap().width;
+            dims[1] = gfx_core.dimensions.read().unwrap().height;
             proj = cgmath::perspective(cgmath::Rad(std::f32::consts::FRAC_PI_2),
                                        { dims[0] as f32 / dims[1] as f32 },
                                        0.01,
                                        100.0);
-
-            recreate_swapchain = false;
         }
 
         let uniform_buffer_subbuffer = {
@@ -265,22 +174,13 @@ fn main() {
                 .build().unwrap()
         );
 
-        let (image_num, acquire_future) = match vulkano::swapchain::acquire_next_image(swapchain.clone(),
-                                                                                       None) {
-            Ok(r) => r,
-            Err(vulkano::swapchain::AcquireError::OutOfDate) => {
-                recreate_swapchain = true;
-                continue;
-            },
-            Err(err) => panic!("{:?}", err)
-        };
-
         let command_buffer = vulkano::command_buffer::AutoCommandBufferBuilder
             ::primary_one_time_submit(gfx_core.device.clone(),
                                       gfx_core.queue.family()
             ).unwrap()
             .begin_render_pass(
-                framebuffers[image_num].clone(), false,
+                gfx_core.framebuffers.read().unwrap()[image_num].clone(),
+                false,
                 vec![
                     [0.0, 0.0, 1.0, 1.0].into(),
                     1f32.into()
@@ -304,7 +204,7 @@ fn main() {
         let future = previous_frame.join(acquire_future)
             .then_execute(gfx_core.queue.clone(), command_buffer).unwrap()
             .then_swapchain_present(gfx_core.queue.clone(),
-                                    swapchain.clone(),
+                                    gfx_core.swapchain.read().unwrap().clone(),
                                     image_num)
             .then_signal_fence_and_flush().unwrap();
         previous_frame = Box::new(future) as Box<_>;
