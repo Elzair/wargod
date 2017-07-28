@@ -68,7 +68,7 @@ mod framework;
 
 fn main() {
     let mut events_loop = framework::input::make_event_loop();
-    let gfx_core = framework::gfx::Core::new(&events_loop).unwrap();
+    let mut gfx_core = framework::gfx::Core::new(&events_loop).unwrap();
     let mut dims = vec![gfx_core.dimensions.read().unwrap().width,
                         gfx_core.dimensions.read().unwrap().height];
 
@@ -132,6 +132,8 @@ fn main() {
             .build(gfx_core.device.clone()).unwrap()
     );
 
+    let mut recreate_swapchain = false;
+
     let mut previous_frame = Box::new(vulkano::sync::now(gfx_core.device.clone()))
         as Box<GpuFuture>;
     let rotation_start = std::time::Instant::now();
@@ -139,17 +141,26 @@ fn main() {
     loop {
         previous_frame.cleanup_finished();
 
-        let (image_num, recreate_swapchain, acquire_future) =
-            gfx_core.acquire_next_framebuffer().unwrap();
-
         if recreate_swapchain {
+            gfx_core.recreate_swapchain();
             dims[0] = gfx_core.dimensions.read().unwrap().width;
             dims[1] = gfx_core.dimensions.read().unwrap().height;
             proj = cgmath::perspective(cgmath::Rad(std::f32::consts::FRAC_PI_2),
                                        { dims[0] as f32 / dims[1] as f32 },
                                        0.01,
                                        100.0);
+            recreate_swapchain = false;
         }
+
+        let (image_num, acquire_future) = match
+            gfx_core.acquire_next_framebuffer() {
+                Ok(r) => r,
+                Err(framework::gfx::AcquireError::OutOfDate) => {
+                    recreate_swapchain = true;
+                    continue;
+                },
+                Err(err) => panic!("{:?}", err)
+            };
 
         let uniform_buffer_subbuffer = {
             let elapsed = rotation_start.elapsed();

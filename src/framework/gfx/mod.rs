@@ -6,6 +6,8 @@ use vulkano_win::VkSurfaceBuild;
 use std::sync::{Arc,RwLock};
 use std::mem;
 
+pub use vulkano::swapchain::{AcquireError, SwapchainAcquireFuture};
+
 mod device;
 
 pub struct Dimensions {
@@ -166,38 +168,37 @@ impl Core {
         })
     }
 
-    pub fn acquire_next_framebuffer(&mut self) -> Result<(usize, bool, vulkano::swapchain::SwapchainAcquireFuture), vulkano::swapchain::AcquireError> {
-        let mut swapchain_recreated = false;
+    pub fn acquire_next_framebuffer(&mut self) -> Result<(usize, SwapchainAcquireFuture), AcquireError> {
+        vulkano::swapchain::acquire_next_image(self.swapchain.read().unwrap().clone(), None)
+        // let mut swapchain_recreated = false;
+
+
         
-        loop {
-            let (image_num, acquire_future): (usize, vulkano::swapchain::SwapchainAcquireFuture) = match vulkano::swapchain::acquire_next_image(
-                self.swapchain.read().unwrap().clone(),
-                None
-            ) {
-                Ok((idx, future)) => return Ok((idx, swapchain_recreated, future)),
-                Err(vulkano::swapchain::AcquireError::OutOfDate) => {
-                    // Recreate swapchain
-                    self.recreate_swapchain();
-                    swapchain_recreated = true;
-                    continue;
-                },
-                Err(err) => return Err(err)
-            };
-        }
+        // loop {
+        //     let (image_num, acquire_future): (usize, vulkano::swapchain::SwapchainAcquireFuture) = match vulkano::swapchain::acquire_next_image(
+        //         self.swapchain.read().unwrap().clone(),
+        //         None
+        //     ) {
+        //         Ok((idx, future)) => return Ok((idx, swapchain_recreated, future)),
+        //         Err(vulkano::swapchain::AcquireError::OutOfDate) => {
+        //             // Recreate swapchain
+        //             self.recreate_swapchain();
+        //             swapchain_recreated = true;
+        //             continue;
+        //         },
+        //         Err(err) => return Err(err)
+        //     };
+        // }
     }
 
-    fn recreate_swapchain(&mut self) {
-        let mut framebuffers_ref = self.framebuffers.write().unwrap();
-
+    pub fn recreate_swapchain(&mut self) {
+        println!("Recreating swapchain!");
         loop {
-            let mut dimensions_ref = self.dimensions.write().unwrap();
-            *dimensions_ref = {
-                let (new_width, new_height) = self.window.window().get_inner_size_pixels().unwrap();
-                Dimensions { width: new_width, height: new_height }
-            };
+            println!("Trying again!");
+            let (new_width, new_height) = self.window.window()
+                .get_inner_size_pixels().unwrap();
 
-            let dims = [self.dimensions.read().unwrap().width,
-                        self.dimensions.read().unwrap().height];
+            let dims = [new_width, new_height];
 
             let (new_swapchain, new_images) = match self.swapchain.read().unwrap()
                 .recreate_with_dimension(dims) {
@@ -223,6 +224,7 @@ impl Core {
                 Arc::new(fb) as Arc<vulkano::framebuffer::FramebufferAbstract + Send + Sync>
             }).collect::<Vec<_>>();
 
+            let mut dimensions_ref = self.dimensions.write().unwrap();
             let mut swapchain_ref = self.swapchain.write().unwrap();
             let mut swapchain_images_ref = self.swapchain_images.write().unwrap();
             let mut depth_buffer_ref = self.depth_buffer.write().unwrap();
@@ -231,6 +233,9 @@ impl Core {
             *depth_buffer_ref = new_depth_buffer;
             *swapchain_images_ref = new_images;
             *swapchain_ref = new_swapchain;
+            *dimensions_ref = {
+                Dimensions { width: new_width, height: new_height }
+            };
 
             break;
         }
