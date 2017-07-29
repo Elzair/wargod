@@ -5,9 +5,14 @@ use vulkano_win::VkSurfaceBuild;
 
 use std::sync::{Arc,RwLock};
 
-pub use vulkano::swapchain::{AcquireError, SwapchainAcquireFuture};
+use vulkano::instance as vki;
+use vulkano::device as vkd;
+use vulkano::swapchain as vks;
+use vulkano::framebuffer as vkfb;
+use vulkano::image as vkim;
+use vulkano::format as vkfmt;
 
-//mod device;
+pub use vulkano::swapchain::{AcquireError, SwapchainAcquireFuture};
 
 pub struct Dimensions {
     pub width: u32,
@@ -15,14 +20,14 @@ pub struct Dimensions {
 }
 
 pub struct Core {
-    pub framebuffers: RwLock<Vec<Arc<vulkano::framebuffer::FramebufferAbstract + Send + Sync>>>,
-    pub render_pass: Arc<vulkano::framebuffer::RenderPassAbstract + Send + Sync>,
-    pub depth_buffer: RwLock<Arc<vulkano::image::attachment::AttachmentImage<vulkano::format::D16Unorm>>>,
-    pub swapchain_images: RwLock<Vec<Arc<vulkano::image::swapchain::SwapchainImage>>>,
-    pub swapchain: RwLock<Arc<vulkano::swapchain::Swapchain>>,
-    pub surface_capabilities: vulkano::swapchain::Capabilities,
-    pub queue: Arc<vulkano::device::Queue>,
-    pub device: Arc<vulkano::device::Device>,
+    pub framebuffers: RwLock<Vec<Arc<vkfb::FramebufferAbstract + Send + Sync>>>,
+    pub render_pass: Arc<vkfb::RenderPassAbstract + Send + Sync>,
+    pub depth_buffer: RwLock<Arc<vkim::attachment::AttachmentImage<vkfmt::D16Unorm>>>,
+    pub swapchain_images: RwLock<Vec<Arc<vkim::swapchain::SwapchainImage>>>,
+    pub swapchain: RwLock<Arc<vks::Swapchain>>,
+    pub surface_capabilities: vks::Capabilities,
+    pub queue: Arc<vkd::Queue>,
+    pub device: Arc<vkd::Device>,
     pub dimensions: RwLock<Dimensions>,
     pub window: vulkano_win::Window,
 }
@@ -32,7 +37,7 @@ impl Core {
         // Create Instance
         
         let extensions = vulkano_win::required_extensions();
-        let instance = vulkano::instance::Instance::new(None, &extensions, None)
+        let instance = vki::Instance::new(None, &extensions, None)
             .expect("failed to create instance");
 
         // Create window
@@ -65,12 +70,12 @@ impl Core {
 
         // Create Logical Device
 
-        let device_extensions = vulkano::device::DeviceExtensions {
+        let device_extensions = vkd::DeviceExtensions {
             khr_swapchain: true,
-            .. vulkano::device::DeviceExtensions::none()
+            .. vkd::DeviceExtensions::none()
         };
 
-        let (device, mut queues) = vulkano::device::Device::new(
+        let (device, mut queues) = vkd::Device::new(
             physical,
             &required_features,
             &device_extensions,
@@ -89,7 +94,7 @@ impl Core {
             let usage = surface_capabilities.supported_usage_flags;
             let format = surface_capabilities.supported_formats[0].0;
 
-            vulkano::swapchain::Swapchain::new(
+            vks::Swapchain::new(
                 device.clone(),
                 window.surface().clone(),
                 surface_capabilities.min_image_count,
@@ -98,9 +103,9 @@ impl Core {
                 1,
                 usage,
                 &queue,
-                vulkano::swapchain::SurfaceTransform::Identity,
-                vulkano::swapchain::CompositeAlpha::Opaque,
-                vulkano::swapchain::PresentMode::Fifo,
+                vks::SurfaceTransform::Identity,
+                vks::CompositeAlpha::Opaque,
+                vks::PresentMode::Fifo,
                 true,
                 None
             ).expect("failed to create swapchain")
@@ -108,10 +113,10 @@ impl Core {
 
         // Create Depth Buffer
 
-        let depth_buffer = vulkano::image::attachment::AttachmentImage::transient(
+        let depth_buffer = vkim::attachment::AttachmentImage::transient(
             device.clone(),
             dims,
-            vulkano::format::D16Unorm
+            vkfmt::D16Unorm
         ).unwrap();
 
         // Create Render Pass
@@ -129,7 +134,7 @@ impl Core {
                     depth: {
                         load: Clear,
                         store: DontCare,
-                        format: vulkano::format::Format::D16Unorm,
+                        format: vkfmt::Format::D16Unorm,
                         samples: 1,
                     }
                 },
@@ -143,11 +148,11 @@ impl Core {
         // Create Framebuffers
 
         let framebuffers = swapchain_images.iter().map(|image| {
-            let fb = vulkano::framebuffer::Framebuffer::start(render_pass.clone())
+            let fb = vkfb::Framebuffer::start(render_pass.clone())
                      .add(image.clone()).unwrap()
                      .add(depth_buffer.clone()).unwrap()
                      .build().unwrap();
-            Arc::new(fb) as Arc<vulkano::framebuffer::FramebufferAbstract + Send + Sync>
+            Arc::new(fb) as Arc<vkfb::FramebufferAbstract + Send + Sync>
         }).collect::<Vec<_>>();
 
         // Return Core part of GFX
@@ -168,7 +173,7 @@ impl Core {
     }
 
     pub fn acquire_next_framebuffer(&mut self) -> Result<(usize, SwapchainAcquireFuture), AcquireError> {
-        vulkano::swapchain::acquire_next_image(self.swapchain.read().unwrap().clone(), None)
+        vks::acquire_next_image(self.swapchain.read().unwrap().clone(), None)
     }
 
     pub fn recreate_swapchain(&mut self) {
@@ -181,25 +186,26 @@ impl Core {
             let (new_swapchain, new_images) = match self.swapchain.read().unwrap()
                 .recreate_with_dimension(dims) {
                     Ok(r) => r,
-                    Err(vulkano::swapchain::SwapchainCreationError::UnsupportedDimensions) => {
+                    // This seems to happen when the user is manually resizing the window.
+                    Err(vks::SwapchainCreationError::UnsupportedDimensions) => {
                         continue;
                     },
                     Err(err) => panic!("{:?}", err)
                 };
 
-            let new_depth_buffer = vulkano::image::attachment::AttachmentImage
+            let new_depth_buffer = vkim::attachment::AttachmentImage
                 ::transient(
                     self.device.clone(),
                     dims,
-                    vulkano::format::D16Unorm
+                    vkfmt::D16Unorm
                 ).unwrap();
 
             let new_framebuffers = new_images.iter().map(|image| {
-                let fb = vulkano::framebuffer::Framebuffer::start(self.render_pass.clone())
+                let fb = vkfb::Framebuffer::start(self.render_pass.clone())
                     .add(image.clone()).unwrap()
                     .add(new_depth_buffer.clone()).unwrap()
                     .build().unwrap();
-                Arc::new(fb) as Arc<vulkano::framebuffer::FramebufferAbstract + Send + Sync>
+                Arc::new(fb) as Arc<vkfb::FramebufferAbstract + Send + Sync>
             }).collect::<Vec<_>>();
 
             // Replace objects in reverse order of creation.
@@ -219,27 +225,27 @@ impl Core {
     }
 }
 
-fn get_required_features() -> vulkano::instance::Features {
-    vulkano::instance::Features {
+fn get_required_features() -> vki::Features {
+    vki::Features {
         tessellation_shader: true,
-        .. vulkano::instance::Features::none()
+        .. vki::Features::none()
     }
 }
 
-fn find_suitable_devices(instance: &Arc<vulkano::instance::Instance>,
-                         required_features: &vulkano::instance::Features) 
+fn find_suitable_devices(instance: &Arc<vki::Instance>,
+                         required_features: &vki::Features) 
                             -> Vec<(String, usize)> {
-    vulkano::instance::PhysicalDevice::enumerate(&instance)
+    vki::PhysicalDevice::enumerate(&instance)
         .filter(|ph| ph.supported_features().superset_of(required_features))
         .map(|ph| (ph.name(), ph.index()))
         .collect::<Vec<(String, usize)>>()
 }
 
-fn init_physical_device(instance: &Arc<vulkano::instance::Instance>,
+fn init_physical_device(instance: &Arc<vki::Instance>,
                         index: Option<usize>)
-                        -> Option<vulkano::instance::PhysicalDevice> {
+                        -> Option<vki::PhysicalDevice> {
     match index {
-        Some(idx) => vulkano::instance::PhysicalDevice::from_index(instance, idx),
+        Some(idx) => vki::PhysicalDevice::from_index(instance, idx),
         None => None
     }
 }
