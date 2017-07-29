@@ -69,8 +69,6 @@ mod framework;
 fn main() {
     let mut events_loop = framework::input::make_event_loop();
     let gfx_core = framework::gfx::Core::new(&events_loop).unwrap();
-    let mut dims = vec![gfx_core.dimensions.read().unwrap().width,
-                        gfx_core.dimensions.read().unwrap().height];
 
     let vertex_buffer = vulkano::buffer::cpu_access::CpuAccessibleBuffer
         ::from_iter(
@@ -99,7 +97,8 @@ fn main() {
     // note: this teapot was meant for OpenGL where the origin is at the lower left
     //       instead the origin is at the upper left in vulkan, so we reverse the Y axis
     let mut proj = cgmath::perspective(cgmath::Rad(std::f32::consts::FRAC_PI_2),
-                                       { dims[0] as f32 / dims[1] as f32 },
+                                       { gfx_core.dimensions.read().unwrap().width as f32 /
+                                         gfx_core.dimensions.read().unwrap().height as f32 },
                                        0.01,
                                        100.0);
     let view = cgmath::Matrix4::look_at(cgmath::Point3::new(0.3, 0.3, 1.0),
@@ -142,12 +141,10 @@ fn main() {
         previous_frame.cleanup_finished();
 
         if recreate_swapchain {
-            //Arc::get_mut(&mut gfx_core).unwrap().recreate_swapchain();
             gfx_core.recreate_swapchain();
-            dims[0] = gfx_core.dimensions.read().unwrap().width;
-            dims[1] = gfx_core.dimensions.read().unwrap().height;
             proj = cgmath::perspective(cgmath::Rad(std::f32::consts::FRAC_PI_2),
-                                       { dims[0] as f32 / dims[1] as f32 },
+                                       { gfx_core.dimensions.read().unwrap().width as f32 /
+                                         gfx_core.dimensions.read().unwrap().height as f32 },
                                        0.01,
                                        100.0);
             recreate_swapchain = false;
@@ -203,7 +200,8 @@ fn main() {
                     line_width: None,
                     viewports: Some(vec![vulkano::pipeline::viewport::Viewport {
                         origin: [0.0, 0.0],
-                        dimensions: [dims[0] as f32, dims[1] as f32],
+                        dimensions: [gfx_core.dimensions.read().unwrap().width as f32,
+                                     gfx_core.dimensions.read().unwrap().height as f32],
                         depth_range: 0.0 .. 1.0,
                     }]),
                     scissors: None,
