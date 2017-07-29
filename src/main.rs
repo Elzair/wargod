@@ -142,7 +142,7 @@ fn main() {
         previous_frame.cleanup_finished();
 
         if recreate_swapchain {
-            gfx_core.recreate_swapchain();
+            Arc::get_mut(&mut gfx_core).unwrap().recreate_swapchain();
             dims[0] = gfx_core.dimensions.read().unwrap().width;
             dims[1] = gfx_core.dimensions.read().unwrap().height;
             proj = cgmath::perspective(cgmath::Rad(std::f32::consts::FRAC_PI_2),

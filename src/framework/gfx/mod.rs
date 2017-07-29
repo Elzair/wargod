@@ -33,7 +33,7 @@ pub struct Core {
 }
 
 impl Core {
-    pub fn new(events_loop: &winit::EventsLoop) -> Result<Core, ()> {
+    pub fn new(events_loop: &winit::EventsLoop) -> Result<Arc<Core>, ()> {
         // Create Instance
         
         let extensions = vulkano_win::required_extensions();
@@ -157,7 +157,7 @@ impl Core {
 
         // Return Core part of GFX
         
-        Ok(Core {
+        Ok(Arc::new(Core {
             framebuffers: RwLock::new(framebuffers),
             depth_buffer: RwLock::new(depth_buffer),
             render_pass: render_pass,
@@ -169,10 +169,10 @@ impl Core {
             dimensions: RwLock::new(Dimensions {width: width,
                                                 height: height}),
             window: window,
-        })
+        }))
     }
 
-    pub fn acquire_next_framebuffer(&mut self) -> Result<(usize, SwapchainAcquireFuture), AcquireError> {
+    pub fn acquire_next_framebuffer(&self) -> Result<(usize, SwapchainAcquireFuture), AcquireError> {
         vks::acquire_next_image(self.swapchain.read().unwrap().clone(), None)
     }
 
