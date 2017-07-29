@@ -68,7 +68,7 @@ mod framework;
 
 fn main() {
     let mut events_loop = framework::input::make_event_loop();
-    let mut gfx_core = framework::gfx::Core::new(&events_loop).unwrap();
+    let gfx_core = framework::gfx::Core::new(&events_loop).unwrap();
     let mut dims = vec![gfx_core.dimensions.read().unwrap().width,
                         gfx_core.dimensions.read().unwrap().height];
 
@@ -142,7 +142,8 @@ fn main() {
         previous_frame.cleanup_finished();
 
         if recreate_swapchain {
-            Arc::get_mut(&mut gfx_core).unwrap().recreate_swapchain();
+            //Arc::get_mut(&mut gfx_core).unwrap().recreate_swapchain();
+            gfx_core.recreate_swapchain();
             dims[0] = gfx_core.dimensions.read().unwrap().width;
             dims[1] = gfx_core.dimensions.read().unwrap().height;
             proj = cgmath::perspective(cgmath::Rad(std::f32::consts::FRAC_PI_2),
