@@ -152,7 +152,7 @@ fn main() {
             recreate_swapchain = false;
         }
 
-        let (image_num, acquire_future) = match
+        let (image_num, framebuffer, acquire_future) = match
             gfx_core.acquire_next_framebuffer() {
                 Ok(r) => r,
                 Err(framework::gfx::AcquireError::OutOfDate) => {
@@ -190,7 +190,7 @@ fn main() {
                                       gfx_core.queue.family()
             ).unwrap()
             .begin_render_pass(
-                gfx_core.framebuffers.read().unwrap()[image_num].clone(),
+                framebuffer.clone(),
                 false,
                 vec![
                     [0.0, 0.0, 1.0, 1.0].into(),
@@ -215,7 +215,7 @@ fn main() {
         let future = previous_frame.join(acquire_future)
             .then_execute(gfx_core.queue.clone(), command_buffer).unwrap()
             .then_swapchain_present(gfx_core.queue.clone(),
-                                    gfx_core.swapchain.read().unwrap().clone(),
+                                    gfx_core.swapchain.read().unwrap().id.clone(),
                                     image_num)
             .then_signal_fence_and_flush().unwrap();
         previous_frame = Box::new(future) as Box<_>;
