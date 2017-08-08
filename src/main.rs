@@ -1,43 +1,3 @@
-// #[macro_use]
-// extern crate vulkano;
-
-// extern crate winit;
-
-// extern crate vulkano_win;
-
-// //pub mod renderer;
-// //pub mod window;
-
-// fn main() {
-//     let mut events_loop = winit::EventsLoop::new();
-//     let window          = winit::WindowBuilder::new()
-//         .build_vk_surface(&events_loop, instance.clone()).unwrap();
-//     window.window.show();
-    
-//     let mut running = true;
-//     while running {
-//         window.events_loop.poll_events(|event| {
-//             if let winit::Event::WindowEvent { event: winit::WindowEvent::Closed, .. } = event {
-//                 running = false;
-//             }
-//         });
-
-//         renderer.render().unwrap();
-
-//         renderer.core.device.device.wait_idle().map_err(|e| {
-//             println!("Failed to wait for device becoming idle ({})", e);
-//         }).unwrap();
-//     }
-
-//     renderer.core.device.device.wait_idle().map_err(|e| {
-//         println!("Failed to wait for device becoming idle ({})", e);
-//     }).unwrap();
-
-//     // match renderer::real_main() {
-//     //     Ok(_) => process::exit(0),
-//     //     Err(_) => process::exit(1),
-//     // }
-// }
 // Copyright (c) 2016 The vulkano developers
 // Licensed under the Apache License, Version 2.0
 // <LICENSE-APACHE or
@@ -47,8 +7,6 @@
 // notice may not be copied, modified, or distributed except
 // according to those terms.
 
-// For the purpose of this example all unused code is allowed.
-#![allow(dead_code)]
 
 extern crate cgmath;
 extern crate winit;
@@ -65,6 +23,7 @@ use vulkano::sync::GpuFuture;
 use std::sync::Arc;
 
 mod framework;
+mod renderer;
 
 fn main() {
     let mut events_loop = framework::input::make_event_loop();
@@ -229,55 +188,6 @@ fn main() {
         if done { return; }
     }
 }
-
-mod vs {
-    #[derive(VulkanoShader)]
-    #[ty = "vertex"]
-    #[src = "
-#version 450
-
-layout(location = 0) in vec3 position;
-layout(location = 1) in vec3 normal;
-
-layout(location = 0) out vec3 v_normal;
-
-layout(set = 0, binding = 0) uniform Data {
-    mat4 world;
-    mat4 view;
-    mat4 proj;
-} uniforms;
-
-void main() {
-    mat4 worldview = uniforms.view * uniforms.world;
-    v_normal = transpose(inverse(mat3(worldview))) * normal;
-    gl_Position = uniforms.proj * worldview * vec4(position, 1.0);
-}
-"]
-    struct Dummy;
-}
-
-mod fs {
-    #[derive(VulkanoShader)]
-    #[ty = "fragment"]
-    #[src = "
-#version 450
-
-layout(location = 0) in vec3 v_normal;
-layout(location = 0) out vec4 f_color;
-
-const vec3 LIGHT = vec3(0.0, 0.0, 1.0);
-
-void main() {
-    float brightness = dot(normalize(v_normal), normalize(LIGHT));
-    vec3 dark_color = vec3(0.6, 0.0, 0.0);
-    vec3 regular_color = vec3(1.0, 0.0, 0.0);
-
-    f_color = vec4(mix(dark_color, regular_color, brightness), 1.0);
-}
-"]
-    struct Dummy;
-}
-
 #[derive(Copy, Clone)]
 pub struct Vertex {
     position: (f32, f32, f32)
@@ -2388,3 +2298,51 @@ pub const INDICES: [u16; 3072] = [
     470, 469, 529,
     529, 530, 470u16,
 ];
+
+mod vs {
+    #[derive(VulkanoShader)]
+    #[ty = "vertex"]
+    #[src = "
+#version 450
+
+layout(location = 0) in vec3 position;
+layout(location = 1) in vec3 normal;
+
+layout(location = 0) out vec3 v_normal;
+
+layout(set = 0, binding = 0) uniform Data {
+    mat4 world;
+    mat4 view;
+    mat4 proj;
+} uniforms;
+
+void main() {
+    mat4 worldview = uniforms.view * uniforms.world;
+    v_normal = transpose(inverse(mat3(worldview))) * normal;
+    gl_Position = uniforms.proj * worldview * vec4(position, 1.0);
+}
+"]
+    struct Dummy;
+}
+
+mod fs {
+    #[derive(VulkanoShader)]
+    #[ty = "fragment"]
+    #[src = "
+#version 450
+
+layout(location = 0) in vec3 v_normal;
+layout(location = 0) out vec4 f_color;
+
+const vec3 LIGHT = vec3(0.0, 0.0, 1.0);
+
+void main() {
+    float brightness = dot(normalize(v_normal), normalize(LIGHT));
+    vec3 dark_color = vec3(0.6, 0.0, 0.0);
+    vec3 regular_color = vec3(1.0, 0.0, 0.0);
+
+    f_color = vec4(mix(dark_color, regular_color, brightness), 1.0);
+}
+"]
+    struct Dummy;
+}
