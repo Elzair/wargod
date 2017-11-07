@@ -33,7 +33,6 @@ fn main() {
         ::from_iter(
             gfx_core.device.clone(),
             vulkano::buffer::BufferUsage::all(),
-            Some(gfx_core.queue.family()),
             VERTICES.iter().cloned()
         ).expect("failed to create buffer");
 
@@ -41,7 +40,6 @@ fn main() {
         ::from_iter(
             gfx_core.device.clone(),
             vulkano::buffer::BufferUsage::all(),
-            Some(gfx_core.queue.family()),
             NORMALS.iter().cloned()
         ).expect("failed to create buffer");
 
@@ -49,7 +47,6 @@ fn main() {
         ::from_iter(
             gfx_core.device.clone(),
             vulkano::buffer::BufferUsage::all(),
-            Some(gfx_core.queue.family()),
             INDICES.iter().cloned()
         ).expect("failed to create buffer");
 
@@ -69,7 +66,6 @@ fn main() {
         ::new(
             gfx_core.device.clone(),
             vulkano::buffer::BufferUsage::all(),
-            Some(gfx_core.queue.family())
         );
 
     let vs = vs::Shader::load(gfx_core.device.clone())
@@ -136,9 +132,8 @@ fn main() {
 
         let set = Arc::new(
             vulkano::descriptor::descriptor_set::PersistentDescriptorSet
-                ::start(pipeline.clone(),
-                        0)
-                .add_buffer(uniform_buffer_subbuffer).unwrap()
+                ::start(pipeline.clone(), 0)
+                .add_buffer(uniform_buffer_subbuffer).ok().unwrap()
                 .build().unwrap()
         );
 

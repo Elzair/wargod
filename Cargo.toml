@@ -4,10 +4,9 @@ version = "0.1.0"
 authors = ["Philip Woods <elzairthesorcerer@gmail.com>"]
 
 [dependencies]
-vulkano               = "0.5.4"
-vulkano-win           = "0.5.4"
-vulkano-shader-derive = "0.5.4"
-winit                 = "0.7"
-cgmath                = "0.14.1"
-time                  = "0.1.38"
-gltf                  = "0.7.0"
+vulkano               = "0.7"
+vulkano-win           = "0.7"
+vulkano-shader-derive = "0.7"
+winit                 = "0.8"
+cgmath                = "0.15"
+time                  = "0.1"
