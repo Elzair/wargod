@@ -4,11 +4,6 @@ version = "0.1.0"
 authors = ["Philip Woods <elzairthesorcerer@gmail.com>"]
 
 [dependencies]
-rayon                 = "0.8"
-num_cpus              = "1.0"
-memmap                = "0.5"
-nalgebra              = "0.12"
-ncollide              = "0.12"
 vulkano               = "0.5.4"
 vulkano-win           = "0.5.4"
 vulkano-shader-derive = "0.5.4"
